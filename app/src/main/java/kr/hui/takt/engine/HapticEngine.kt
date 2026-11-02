@@ -63,6 +63,18 @@ class HapticEngine(context: Context) {
 
     fun stop() = vibrator.cancel()
 
+    /** 정지 상태에서 세기 확인용: 강박 1번 + 보통 박 1번. */
+    fun preview(style: HapticStyle) {
+        val st = if (hasAmplitudeControl) style else style.withoutAmplitudeControl(VibrationEffect.DEFAULT_AMPLITUDE)
+        vibrate(
+            VibrationEffect.createWaveform(
+                longArrayOf(0, st.accentPulseMs, 300, st.pulseMs),
+                intArrayOf(0, st.accentAmplitude, 0, st.amplitude),
+                -1,
+            ),
+        )
+    }
+
     private fun vibrate(effect: VibrationEffect) {
         // ALARM 용도: 방해금지 모드에서도 울리고, 백그라운드(포그라운드 서비스) 진동 제한에서 허용되는 용도.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {

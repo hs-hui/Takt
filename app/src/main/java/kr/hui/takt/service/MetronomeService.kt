@@ -12,6 +12,7 @@ import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.PowerManager
+import android.os.SystemClock
 import androidx.core.app.NotificationCompat
 import androidx.core.app.ServiceCompat
 import androidx.lifecycle.LifecycleService
@@ -71,7 +72,6 @@ class MetronomeService : LifecycleService() {
             screenReceiver,
             IntentFilter().apply {
                 addAction(Intent.ACTION_SCREEN_OFF)
-                addAction(Intent.ACTION_SCREEN_ON)
             },
         )
 
@@ -101,10 +101,16 @@ class MetronomeService : LifecycleService() {
         super.onDestroy()
     }
 
+    /** 워치페이스 표시: "120 BPM · 03:21" (경과 시간은 시스템이 실시간으로 갱신) */
     private fun status(bpm: Int) = Status.Builder()
-        .addTemplate("#bpm# BPM")
+        .addTemplate("#bpm# BPM · #time#")
         .addPart("bpm", Status.TextPart(bpm.toString()))
+        // StopwatchPart 의 기준 시각은 SystemClock.elapsedRealtime() 기준
+        .addPart("time", Status.StopwatchPart(startedAt()))
         .build()
+
+    private fun startedAt(): Long =
+        Metronome.state.value.startedAtElapsedMs.takeIf { it != 0L } ?: SystemClock.elapsedRealtime()
 
     private fun notificationBuilder(bpm: Int) =
         NotificationCompat.Builder(this, CHANNEL_ID)

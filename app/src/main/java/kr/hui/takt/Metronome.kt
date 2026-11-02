@@ -32,6 +32,8 @@ import kr.hui.takt.tile.MetronomeTileService
 
 data class MetronomeState(
     val settings: MetronomeSettings = MetronomeSettings(),
+    /** 재생 시작 시각 (SystemClock.elapsedRealtime, ms). 정지 상태면 0 */
+    val startedAtElapsedMs: Long = 0L,
     /** 재생 중이면 현재 진동이 따르는 박자 격자, 정지 상태면 null */
     val grid: BeatGrid? = null,
 ) {
@@ -101,7 +103,7 @@ object Metronome {
         if (_state.value.playing) return
         val s = _state.value.settings
         val grid = BeatGrid.start(SystemClock.elapsedRealtimeNanos(), s.bpm, s.beatsPerBar)
-        _state.value = _state.value.copy(grid = grid)
+        _state.value = _state.value.copy(grid = grid, startedAtElapsedMs = SystemClock.elapsedRealtime())
         play(grid, s)
         resetTrainer(grid, s)
         ContextCompat.startForegroundService(appContext, Intent(appContext, MetronomeService::class.java))
@@ -117,6 +119,7 @@ object Metronome {
         _state.value = _state.value.let { st ->
             st.copy(
                 grid = null,
+                startedAtElapsedMs = 0L,
                 settings = if (restored != null) st.settings.copy(bpm = restored) else st.settings,
             )
         }
@@ -132,9 +135,19 @@ object Metronome {
     fun cycleBeatLevel(index: Int) = update { it.withBeatLevelCycled(index) }
     fun setSubdivision(n: Int) =
         update { it.copy(subdivision = n.coerceIn(1, MetronomeSettings.MAX_SUBDIVISION)) }
-    fun setAccent(enabled: Boolean) = update { it.copy(accentEnabled = enabled, beatLevels = emptyList()) }
-    fun setStrength(level: Int) =
+    fun setAccent(enabled: Boolean) {
+        update { it.copy(accentEnabled = enabled, beatLevels = emptyList()) }
+        previewIfStopped()
+    }
+    fun setStrength(level: Int) {
         update { it.copy(strength = level.coerceIn(1, MetronomeSettings.STRENGTH_AMPLITUDES.size)) }
+        previewIfStopped()
+    }
+
+    private fun previewIfStopped() {
+        val st = _state.value
+        if (!st.playing) engine.preview(st.settings.hapticStyle())
+    }
     fun setTrainer(change: (TrainerSettings) -> TrainerSettings) =
         update { it.copy(trainer = change(it.trainer).sanitized()) }
 
@@ -250,7 +263,7 @@ object Metronome {
         handler.removeCallbacks(applyRunnable)
         val s = st.settings.copy(bpm = nextBpm)
         val newGrid = grid.retimed(SystemClock.elapsedRealtimeNanos(), nextBpm, grid.beatsPerBar)
-        _state.value = MetronomeState(s, newGrid)
+        _state.value = st.copy(settings = s, grid = newGrid)
         play(newGrid, s)
         trainerNextBeat = newGrid.originBeat + t.everyBars.toLong() * newGrid.beatsPerBar
         scheduleTrainer(newGrid)
