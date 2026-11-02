@@ -35,6 +35,8 @@ class HapticPattern(
             firstDelayMs: Long,
             style: HapticStyle,
             subdivision: Int = 1,
+            /** 마디 내 박별 세기(0=무음, 1=보통, 2=강박). null 이면 style.accentEnabled 에 따른 기본값 */
+            levels: IntArray? = null,
         ): HapticPattern {
             require(firstDelayMs >= 0)
             require(subdivision >= 1)
@@ -47,15 +49,17 @@ class HapticPattern(
             for (k in 0 until pulses) {
                 val start = roundDiv(k * 60_000L, rate)
                 val span = roundDiv((k + 1) * 60_000L, rate) - start
+                val barPos = (startBarPosition + k / subdivision) % beatsPerBar
+                val level = levels?.getOrNull(barPos) ?: defaultLevel(barPos, beatsPerBar, style.accentEnabled)
                 val kind = when {
                     k % subdivision != 0 -> PulseKind.SUB
-                    style.accentEnabled && beatsPerBar > 1 &&
-                        (startBarPosition + k / subdivision) % beatsPerBar == 0 -> PulseKind.ACCENT
+                    level >= LEVEL_ACCENT -> PulseKind.ACCENT
+                    level <= LEVEL_MUTE -> PulseKind.MUTE
                     else -> PulseKind.BEAT
                 }
                 val wanted = when (kind) {
                     PulseKind.ACCENT -> style.accentPulseMs
-                    PulseKind.BEAT -> style.pulseMs
+                    PulseKind.BEAT, PulseKind.MUTE -> style.pulseMs
                     PulseKind.SUB -> style.subPulseMs
                 }
                 // 펄스 간격의 45% 를 넘지 않게 (빠른 템포에서 펄스가 이어붙지 않도록)
@@ -66,6 +70,7 @@ class HapticPattern(
                     PulseKind.ACCENT -> style.accentAmplitude
                     PulseKind.BEAT -> style.amplitude
                     PulseKind.SUB -> style.subAmplitude
+                    PulseKind.MUTE -> 0
                 }
             }
             return HapticPattern(timings, amps, beats)
@@ -98,10 +103,17 @@ class HapticPattern(
             return exact - Math.round(exact)
         }
 
+        const val LEVEL_MUTE = 0
+        const val LEVEL_NORMAL = 1
+        const val LEVEL_ACCENT = 2
+
+        fun defaultLevel(barPos: Int, beatsPerBar: Int, accentEnabled: Boolean) =
+            if (accentEnabled && beatsPerBar > 1 && barPos == 0) LEVEL_ACCENT else LEVEL_NORMAL
+
         private fun roundDiv(a: Long, b: Long): Long = (2 * a + b) / (2 * b)
     }
 
-    private enum class PulseKind { ACCENT, BEAT, SUB }
+    private enum class PulseKind { ACCENT, BEAT, SUB, MUTE }
 }
 
 /** 진동 느낌 설정. 진폭은 1..255. */

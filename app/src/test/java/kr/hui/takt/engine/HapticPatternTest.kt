@@ -49,6 +49,28 @@ class HapticPatternTest {
         assertEquals(style.subPulseMs, p.timings[3])
     }
 
+    @Test fun customLevelsAccentAndMute() {
+        val p = HapticPattern.build(120, 4, 0, 0, style, levels = intArrayOf(1, 2, 0, 1))
+        assertEquals(100, p.amplitudes[1])
+        assertEquals(255, p.amplitudes[3])
+        assertEquals(0, p.amplitudes[5])
+        assertEquals(100, p.amplitudes[7])
+        assertEquals(500L, p.timings[5] + p.timings[6]) // 무음 박도 시간은 차지
+    }
+
+    @Test fun cycleLevelOrder() {
+        var s = kr.hui.takt.data.MetronomeSettings(beatsPerBar = 3)
+        assertEquals(listOf(2, 1, 1), s.levels().toList())
+        s = s.withBeatLevelCycled(1)
+        assertEquals(listOf(2, 2, 1), s.levels().toList())
+        s = s.withBeatLevelCycled(1)
+        assertEquals(listOf(2, 0, 1), s.levels().toList())
+        s = s.withBeatLevelCycled(1)
+        assertEquals(listOf(2, 1, 1), s.levels().toList())
+        // 박 수가 바뀌면 sanitize 가 초기화
+        assertEquals(listOf(2, 1, 1, 1), s.copy(beatsPerBar = 4).sanitized().levels().toList())
+    }
+
     private tailrec fun gcd(a: Int, b: Int): Int = if (b == 0) a else gcd(b, a % b)
     private fun lcm(a: Int, b: Int) = a / gcd(a, b) * b
 

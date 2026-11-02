@@ -35,10 +35,10 @@ class ScreenshotTest {
         MainScreen(
             MetronomeState(
                 MetronomeSettings(
-                    bpm = 132, beatsPerBar = 3, subdivision = 3,
+                    bpm = 132, beatsPerBar = 7, subdivision = 3, beatLevels = listOf(2, 1, 1, 2, 1, 0, 1),
                     trainer = kr.hui.takt.data.TrainerSettings(enabled = true),
                 ),
-                grid = BeatGrid(0, 0, 132, 3),
+                grid = BeatGrid(0, 0, 132, 7),
             ),
             {}, {}, {}, {},
         )

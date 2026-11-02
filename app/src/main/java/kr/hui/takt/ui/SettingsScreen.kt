@@ -79,6 +79,7 @@ fun SettingsScreen(
                     checked = settings.accentEnabled,
                     onCheckedChange = actions.onAccent,
                     label = { Text(stringResource(R.string.accent_first_beat)) },
+                    secondaryLabel = { Text(stringResource(R.string.accent_ring_hint)) },
                     modifier = Modifier.fillMaxWidth(),
                 )
             }

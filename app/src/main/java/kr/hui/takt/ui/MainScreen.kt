@@ -49,6 +49,7 @@ fun MainScreen(
     onNudge: (Int) -> Unit,
     onTap: () -> Unit,
     onOpenSettings: () -> Unit,
+    onBeatTap: (Int) -> Unit = {},
 ) {
     val colors = MaterialTheme.colorScheme
     val focusRequester = remember { FocusRequester() }
@@ -69,11 +70,12 @@ fun MainScreen(
         ) {
             BeatRing(
                 grid = state.grid,
-                beatsPerBar = s.beatsPerBar,
+                levels = s.levels(),
                 activeColor = colors.primary,
                 accentColor = colors.tertiary,
                 idleColor = colors.surfaceContainerHigh,
                 modifier = Modifier.fillMaxSize(),
+                onBeatTap = onBeatTap,
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(

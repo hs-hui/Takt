@@ -33,7 +33,7 @@ class HapticEngine(context: Context) {
      * 격자 [grid] 의 다음 박부터 시작하는 파형을 재생한다.
      * @return 파형의 첫 박 번호
      */
-    fun playFrom(grid: BeatGrid, style: HapticStyle, subdivision: Int = 1): Long {
+    fun playFrom(grid: BeatGrid, style: HapticStyle, subdivision: Int = 1, levels: IntArray? = null): Long {
         val now = SystemClock.elapsedRealtimeNanos()
         val first = grid.nextBeatAfter(now + MIN_LEAD_NANOS)
         val delayMs = ((grid.timeOfBeat(first) - now) / 1_000_000L).coerceAtLeast(0)
@@ -47,7 +47,13 @@ class HapticEngine(context: Context) {
             firstDelayMs = delayMs,
             style = effectiveStyle,
             subdivision = subdivision,
+            levels = levels,
         )
+        if (pattern.amplitudes.all { it == 0 }) {
+            // 모든 박이 무음: 진동할 것이 없다
+            vibrator.cancel()
+            return first
+        }
         val effect = VibrationEffect.createWaveform(
             pattern.timings, pattern.amplitudes, pattern.repeatIndex,
         )

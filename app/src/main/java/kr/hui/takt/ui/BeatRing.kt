@@ -23,6 +23,11 @@ import android.os.SystemClock
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kr.hui.takt.engine.BeatGrid
+import kr.hui.takt.engine.HapticPattern
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.atan2
+import kotlin.math.sqrt
 
 /**
  * 화면 테두리를 박 수만큼 나눈 링. 현재 박이 켜지고 서서히 흐려진다.
@@ -31,12 +36,15 @@ import kr.hui.takt.engine.BeatGrid
 @Composable
 fun BeatRing(
     grid: BeatGrid?,
-    beatsPerBar: Int,
+    levels: IntArray,
     activeColor: Color,
     accentColor: Color,
     idleColor: Color,
     modifier: Modifier = Modifier,
+    /** 링의 박 칸을 탭했을 때 (박 번호). 링 바깥쪽 띠에서만 반응 */
+    onBeatTap: ((Int) -> Unit)? = null,
 ) {
+    val beatsPerBar = levels.size
     var beat by remember { mutableLongStateOf(-1L) }
     val flash = remember { Animatable(0f) }
 
@@ -62,19 +70,37 @@ fun BeatRing(
         }
     }
 
-    Canvas(modifier) {
+    val tapModifier = if (onBeatTap == null) Modifier else Modifier.pointerInput(beatsPerBar) {
+        detectTapGestures { pos ->
+            val cx = size.width / 2f
+            val cy = size.height / 2f
+            val dx = pos.x - cx
+            val dy = pos.y - cy
+            val r = sqrt(dx * dx + dy * dy)
+            if (r < minOf(cx, cy) * 0.72f) return@detectTapGestures
+            // 12시 방향 0도, 시계 방향
+            val deg = (Math.toDegrees(atan2(dy.toDouble(), dx.toDouble())) + 90 + 360) % 360
+            onBeatTap((deg / (360.0 / beatsPerBar)).toInt().coerceIn(0, beatsPerBar - 1))
+        }
+    }
+
+    Canvas(modifier.then(tapModifier)) {
         val strokeWidth = 7.dp.toPx()
-        val inset = strokeWidth / 2 + 2.dp.toPx()
+        val inset = strokeWidth * 0.7f + 2.dp.toPx()
         val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
         val gapDeg = if (beatsPerBar == 1) 0f else 6f
         val sweep = 360f / beatsPerBar - gapDeg
         val pos = if (beat >= 0 && grid != null) grid.barPosition(beat) else -1
         for (i in 0 until beatsPerBar) {
             val start = -90f + i * (360f / beatsPerBar) + gapDeg / 2
+            val level = levels[i]
             val isCurrent = i == pos
-            val base = if (i == 0 && beatsPerBar > 1) accentColor.copy(alpha = 0.35f) else idleColor
-            val color = if (isCurrent) {
-                val target = if (i == 0 && beatsPerBar > 1) accentColor else activeColor
+            val (base, target, width) = when (level) {
+                HapticPattern.LEVEL_ACCENT -> Triple(accentColor.copy(alpha = 0.45f), accentColor, strokeWidth * 1.3f)
+                HapticPattern.LEVEL_MUTE -> Triple(idleColor.copy(alpha = 0.35f), idleColor, strokeWidth * 0.35f)
+                else -> Triple(idleColor, activeColor, strokeWidth)
+            }
+            val color = if (isCurrent && level != HapticPattern.LEVEL_MUTE) {
                 lerp(base, target, 0.35f + 0.65f * flash.value)
             } else base
             drawArc(
@@ -84,7 +110,7 @@ fun BeatRing(
                 useCenter = false,
                 topLeft = Offset(inset, inset),
                 size = arcSize,
-                style = Stroke(width = if (isCurrent) strokeWidth * 1.4f else strokeWidth, cap = StrokeCap.Round),
+                style = Stroke(width = if (isCurrent) width * 1.3f else width, cap = StrokeCap.Round),
             )
         }
     }

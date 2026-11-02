@@ -33,6 +33,7 @@ fun TaktApp() {
                         onNudge = Metronome::nudgeBpm,
                         onTap = Metronome::tap,
                         onOpenSettings = { nav.navigate("settings") },
+                        onBeatTap = Metronome::cycleBeatLevel,
                     )
                 }
                 composable("settings") {

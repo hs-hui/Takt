@@ -9,6 +9,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 import kr.hui.takt.engine.BeatGrid
+import kr.hui.takt.engine.HapticPattern
 import kr.hui.takt.engine.HapticStyle
 
 data class MetronomeSettings(
@@ -23,7 +24,25 @@ data class MetronomeSettings(
     /** 재생 중 화면을 켜둘지 (배터리 소모 큼) */
     val keepScreenOn: Boolean = false,
     val presets: List<Preset> = emptyList(),
+    /** 박별 세기(0 무음/1 보통/2 강박). 비어 있으면 accentEnabled 기본 패턴 */
+    val beatLevels: List<Int> = emptyList(),
 ) {
+    fun levels(): IntArray = IntArray(beatsPerBar) { i ->
+        beatLevels.getOrNull(i) ?: HapticPattern.defaultLevel(i, beatsPerBar, accentEnabled)
+    }
+
+    /** 박 하나의 세기를 보통 → 강박 → 무음 → 보통 순으로 바꾼다. */
+    fun withBeatLevelCycled(index: Int): MetronomeSettings {
+        if (index !in 0 until beatsPerBar) return this
+        val l = levels()
+        l[index] = when (l[index]) {
+            HapticPattern.LEVEL_NORMAL -> HapticPattern.LEVEL_ACCENT
+            HapticPattern.LEVEL_ACCENT -> HapticPattern.LEVEL_MUTE
+            else -> HapticPattern.LEVEL_NORMAL
+        }
+        return copy(beatLevels = l.toList())
+    }
+
     fun currentPreset() = Preset(bpm, beatsPerBar, subdivision)
 
     fun withPresetSaved(): MetronomeSettings {
@@ -50,6 +69,7 @@ data class MetronomeSettings(
         subdivision = subdivision.coerceIn(1, MAX_SUBDIVISION),
         trainer = trainer.sanitized(),
         presets = presets.map { it.sanitized() }.distinct().take(MAX_PRESETS),
+        beatLevels = if (beatLevels.size == beatsPerBar) beatLevels.map { it.coerceIn(0, 2) } else emptyList(),
     )
 
     companion object {
@@ -107,6 +127,7 @@ class SettingsRepository(private val context: Context) {
         val TRAINER_TARGET = intPreferencesKey("trainer_target")
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         val PRESETS = stringPreferencesKey("presets")
+        val BEAT_LEVELS = stringPreferencesKey("beat_levels")
     }
 
     suspend fun load(): MetronomeSettings {
@@ -126,6 +147,7 @@ class SettingsRepository(private val context: Context) {
             ),
             keepScreenOn = p[Keys.KEEP_SCREEN_ON] ?: d.keepScreenOn,
             presets = Preset.decode(p[Keys.PRESETS]),
+            beatLevels = p[Keys.BEAT_LEVELS].orEmpty().split(',').mapNotNull { it.toIntOrNull() },
         ).sanitized()
     }
 
@@ -142,6 +164,7 @@ class SettingsRepository(private val context: Context) {
             p[Keys.TRAINER_TARGET] = s.trainer.targetBpm
             p[Keys.KEEP_SCREEN_ON] = s.keepScreenOn
             p[Keys.PRESETS] = Preset.encode(s.presets)
+            p[Keys.BEAT_LEVELS] = s.beatLevels.joinToString(",")
         }
     }
 }

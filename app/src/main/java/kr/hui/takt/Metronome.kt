@@ -125,11 +125,14 @@ object Metronome {
 
     fun setBpm(bpm: Int) = update { it.copy(bpm = bpm.coerceIn(BeatGrid.MIN_BPM, BeatGrid.MAX_BPM)) }
     fun nudgeBpm(delta: Int) = setBpm(_state.value.settings.bpm + delta)
-    fun setBeatsPerBar(n: Int) =
-        update { it.copy(beatsPerBar = n.coerceIn(BeatGrid.MIN_BEATS, BeatGrid.MAX_BEATS)) }
+    fun setBeatsPerBar(n: Int) = update {
+        // 박 수가 바뀌면 박별 세기는 기본값으로
+        it.copy(beatsPerBar = n.coerceIn(BeatGrid.MIN_BEATS, BeatGrid.MAX_BEATS), beatLevels = emptyList())
+    }
+    fun cycleBeatLevel(index: Int) = update { it.withBeatLevelCycled(index) }
     fun setSubdivision(n: Int) =
         update { it.copy(subdivision = n.coerceIn(1, MetronomeSettings.MAX_SUBDIVISION)) }
-    fun setAccent(enabled: Boolean) = update { it.copy(accentEnabled = enabled) }
+    fun setAccent(enabled: Boolean) = update { it.copy(accentEnabled = enabled, beatLevels = emptyList()) }
     fun setStrength(level: Int) =
         update { it.copy(strength = level.coerceIn(1, MetronomeSettings.STRENGTH_AMPLITUDES.size)) }
     fun setTrainer(change: (TrainerSettings) -> TrainerSettings) =
@@ -169,7 +172,7 @@ object Metronome {
 
     /** 진동 출력에 영향을 주는 설정만 */
     private fun MetronomeSettings.engineKey() =
-        listOf(bpm, beatsPerBar, subdivision, strength, if (accentEnabled) 1 else 0)
+        listOf(bpm, beatsPerBar, subdivision, strength, levels().toList())
 
     private val applyRunnable = Runnable { applySettingsToEngine() }
 
@@ -188,7 +191,7 @@ object Metronome {
     }
 
     private fun play(grid: BeatGrid, s: MetronomeSettings) {
-        engine.playFrom(grid, s.hapticStyle(), s.subdivision)
+        engine.playFrom(grid, s.hapticStyle(), s.subdivision, s.levels())
         scheduleReanchor(grid)
     }
 
