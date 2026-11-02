@@ -7,6 +7,8 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
+import androidx.wear.tiles.TileService
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,6 +27,7 @@ import kr.hui.takt.engine.BeatGrid
 import kr.hui.takt.engine.HapticEngine
 import kr.hui.takt.engine.TapTempo
 import kr.hui.takt.service.MetronomeService
+import kr.hui.takt.tile.MetronomeTileService
 
 data class MetronomeState(
     val settings: MetronomeSettings = MetronomeSettings(),
@@ -48,6 +51,7 @@ object Metronome {
     private val handler = Handler(Looper.getMainLooper())
     private val tapTempo = TapTempo()
 
+    private val loaded = CompletableDeferred<Unit>()
     private val _state = MutableStateFlow(MetronomeState())
     val state: StateFlow<MetronomeState> = _state.asStateFlow()
 
@@ -65,8 +69,19 @@ object Metronome {
         engine = HapticEngine(appContext)
         repo = SettingsRepository(appContext)
         scope.launch {
-            val loaded = repo.load()
-            if (!_state.value.playing) _state.value = _state.value.copy(settings = loaded)
+            // 타일이 현재 상태를 보여주도록 변경 시 갱신 요청
+            _state.map { Triple(it.playing, it.settings.bpm, it.settings.beatsPerBar to it.settings.subdivision) }
+                .distinctUntilChanged()
+                .drop(1)
+                .debounce(300)
+                .collect {
+                    TileService.getUpdater(appContext).requestUpdate(MetronomeTileService::class.java)
+                }
+        }
+        scope.launch {
+            val saved = repo.load()
+            if (!_state.value.playing) _state.value = _state.value.copy(settings = saved)
+            loaded.complete(Unit)
             // 설정 변경을 모아서 저장
             _state.map { it.settings }
                 .distinctUntilChanged()
@@ -75,6 +90,9 @@ object Metronome {
                 .collect { repo.save(it) }
         }
     }
+
+    /** 저장된 설정을 다 읽을 때까지 대기 (타일처럼 프로세스가 막 뜬 경우). */
+    suspend fun awaitLoaded() = loaded.await()
 
     fun toggle() = if (_state.value.playing) stop() else start()
 

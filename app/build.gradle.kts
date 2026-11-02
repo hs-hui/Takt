@@ -57,6 +57,10 @@ dependencies {
     implementation(libs.androidx.lifecycle.service)
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.wear.ongoing)
+    implementation(libs.androidx.wear.tiles)
+    implementation(libs.androidx.wear.protolayout)
+    implementation(libs.androidx.wear.protolayout.material)
+    implementation(libs.androidx.concurrent.futures)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.wear.compose.ui.tooling)
