@@ -61,12 +61,16 @@ dependencies {
     implementation(libs.androidx.wear.protolayout)
     implementation(libs.androidx.wear.protolayout.material)
     implementation(libs.androidx.concurrent.futures)
+    // 타일 API 의 ListenableFuture (릴리스는 R8 이 사용하는 부분만 남김)
+    implementation(libs.guava)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.wear.compose.ui.tooling)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
+    // 타일 스크린샷 테스트용 (리소스가 R 에 합쳐지도록 debug 에 둔다)
+    debugImplementation(libs.androidx.wear.tiles.renderer)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(platform(libs.androidx.compose.bom))
