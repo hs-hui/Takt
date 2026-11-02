@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.first
 import kr.hui.takt.engine.BeatGrid
@@ -19,7 +20,20 @@ data class MetronomeSettings(
     /** 한 박을 몇 개로 나눌지: 1=4분, 2=8분, 3=셋잇단, 4=16분 */
     val subdivision: Int = 1,
     val trainer: TrainerSettings = TrainerSettings(),
+    /** 재생 중 화면을 켜둘지 (배터리 소모 큼) */
+    val keepScreenOn: Boolean = false,
+    val presets: List<Preset> = emptyList(),
 ) {
+    fun currentPreset() = Preset(bpm, beatsPerBar, subdivision)
+
+    fun withPresetSaved(): MetronomeSettings {
+        val p = currentPreset()
+        return copy(presets = (listOf(p) + presets.filter { it != p }).take(MAX_PRESETS))
+    }
+
+    fun withPresetApplied(p: Preset) =
+        copy(bpm = p.bpm, beatsPerBar = p.beatsPerBar, subdivision = p.subdivision).sanitized()
+
     fun hapticStyle(): HapticStyle {
         val amp = STRENGTH_AMPLITUDES[strength - 1]
         return HapticStyle(
@@ -35,11 +49,32 @@ data class MetronomeSettings(
         strength = strength.coerceIn(1, STRENGTH_AMPLITUDES.size),
         subdivision = subdivision.coerceIn(1, MAX_SUBDIVISION),
         trainer = trainer.sanitized(),
+        presets = presets.map { it.sanitized() }.distinct().take(MAX_PRESETS),
     )
 
     companion object {
         val STRENGTH_AMPLITUDES = intArrayOf(60, 100, 150, 200, 255)
         const val MAX_SUBDIVISION = 4
+        const val MAX_PRESETS = 8
+    }
+}
+
+data class Preset(val bpm: Int, val beatsPerBar: Int, val subdivision: Int) {
+    fun sanitized() = Preset(
+        bpm.coerceIn(BeatGrid.MIN_BPM, BeatGrid.MAX_BPM),
+        beatsPerBar.coerceIn(BeatGrid.MIN_BEATS, BeatGrid.MAX_BEATS),
+        subdivision.coerceIn(1, MetronomeSettings.MAX_SUBDIVISION),
+    )
+
+    companion object {
+        /** "120,4,1;90,3,2" 형식 */
+        fun encode(list: List<Preset>) = list.joinToString(";") { "${it.bpm},${it.beatsPerBar},${it.subdivision}" }
+
+        fun decode(s: String?): List<Preset> =
+            s.orEmpty().split(';').mapNotNull { item ->
+                val n = item.split(',').map { it.trim().toIntOrNull() }
+                if (n.size == 3 && n.all { it != null }) Preset(n[0]!!, n[1]!!, n[2]!!).sanitized() else null
+            }
     }
 }
 
@@ -70,6 +105,8 @@ class SettingsRepository(private val context: Context) {
         val TRAINER_STEP = intPreferencesKey("trainer_step")
         val TRAINER_EVERY = intPreferencesKey("trainer_every")
         val TRAINER_TARGET = intPreferencesKey("trainer_target")
+        val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
+        val PRESETS = stringPreferencesKey("presets")
     }
 
     suspend fun load(): MetronomeSettings {
@@ -87,6 +124,8 @@ class SettingsRepository(private val context: Context) {
                 everyBars = p[Keys.TRAINER_EVERY] ?: d.trainer.everyBars,
                 targetBpm = p[Keys.TRAINER_TARGET] ?: d.trainer.targetBpm,
             ),
+            keepScreenOn = p[Keys.KEEP_SCREEN_ON] ?: d.keepScreenOn,
+            presets = Preset.decode(p[Keys.PRESETS]),
         ).sanitized()
     }
 
@@ -101,6 +140,8 @@ class SettingsRepository(private val context: Context) {
             p[Keys.TRAINER_STEP] = s.trainer.stepBpm
             p[Keys.TRAINER_EVERY] = s.trainer.everyBars
             p[Keys.TRAINER_TARGET] = s.trainer.targetBpm
+            p[Keys.KEEP_SCREEN_ON] = s.keepScreenOn
+            p[Keys.PRESETS] = Preset.encode(s.presets)
         }
     }
 }

@@ -44,6 +44,20 @@ class ScreenshotTest {
         )
     }
 
+    @Test fun settingsWithPresets() = capture("settings_presets") {
+        SettingsScreen(
+            MetronomeSettings(
+                presets = listOf(
+                    kr.hui.takt.data.Preset(100, 4, 1),
+                    kr.hui.takt.data.Preset(72, 3, 3),
+                ),
+            ),
+            hasVibrator = true,
+            SettingsActions(),
+            initialItem = 6,
+        )
+    }
+
     @Test fun settings() = capture("settings") {
         SettingsScreen(MetronomeSettings(), hasVibrator = true, SettingsActions())
     }

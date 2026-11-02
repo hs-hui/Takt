@@ -23,4 +23,11 @@
     <string name="bars_value">%1$d마디</string>
     <string name="trainer_step">증가량</string>
     <string name="trainer_target">목표 BPM</string>
+    <string name="presets">프리셋</string>
+    <string name="preset_save">현재 설정 저장</string>
+    <string name="preset_delete">삭제</string>
+    <string name="preset_hint">길게 누르면 삭제</string>
+    <string name="display">화면</string>
+    <string name="keep_screen_on">재생 중 화면 켜두기</string>
+    <string name="keep_screen_on_hint">배터리 소모 증가</string>
 </resources>

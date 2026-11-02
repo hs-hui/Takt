@@ -1,6 +1,8 @@
 package kr.hui.takt.ui
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.runtime.getValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.wear.compose.material3.AppScaffold
@@ -14,6 +16,13 @@ import kr.hui.takt.Metronome
 fun TaktApp() {
     val state by Metronome.state.collectAsStateWithLifecycle()
     val nav = rememberSwipeDismissableNavController()
+    // 재생 중 화면 켜두기 옵션
+    val view = LocalView.current
+    val keepOn = state.playing && state.settings.keepScreenOn
+    DisposableEffect(keepOn) {
+        view.keepScreenOn = keepOn
+        onDispose { view.keepScreenOn = false }
+    }
     MaterialTheme {
         AppScaffold {
             SwipeDismissableNavHost(navController = nav, startDestination = "main") {
@@ -36,6 +45,10 @@ fun TaktApp() {
                             onAccent = Metronome::setAccent,
                             onStrength = Metronome::setStrength,
                             onTrainer = Metronome::setTrainer,
+                            onKeepScreenOn = Metronome::setKeepScreenOn,
+                            onSavePreset = Metronome::savePreset,
+                            onApplyPreset = Metronome::applyPreset,
+                            onDeletePreset = Metronome::deletePreset,
                         ),
                     )
                 }

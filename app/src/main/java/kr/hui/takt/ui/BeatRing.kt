@@ -10,6 +10,9 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -37,20 +40,24 @@ fun BeatRing(
     var beat by remember { mutableLongStateOf(-1L) }
     val flash = remember { Animatable(0f) }
 
-    LaunchedEffect(grid) {
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(grid, lifecycle) {
         if (grid == null) {
             beat = -1L
             flash.snapTo(0f)
             return@LaunchedEffect
         }
-        while (true) {
-            val now = SystemClock.elapsedRealtimeNanos()
-            val next = grid.nextBeatAfter(now)
-            delay(((grid.timeOfBeat(next) - now) / 1_000_000L).coerceAtLeast(0))
-            beat = next
-            launch {
-                flash.snapTo(1f)
-                flash.animateTo(0f, tween(((grid.beatNanos / 1e6) * 0.8).toInt()))
+        // 화면이 안 보일 때(화면 꺼짐, 다른 앱)는 깨어나지 않는다
+        lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+            while (true) {
+                val now = SystemClock.elapsedRealtimeNanos()
+                val next = grid.nextBeatAfter(now)
+                delay(((grid.timeOfBeat(next) - now) / 1_000_000L).coerceAtLeast(0))
+                beat = next
+                launch {
+                    flash.snapTo(1f)
+                    flash.animateTo(0f, tween(((grid.beatNanos / 1e6) * 0.8).toInt()))
+                }
             }
         }
     }

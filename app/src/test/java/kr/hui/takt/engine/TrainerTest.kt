@@ -27,3 +27,24 @@ class TrainerTest {
         assertEquals(BeatGrid.MAX_BPM, t.targetBpm)
     }
 }
+
+class PresetTest {
+    @Test fun encodeDecodeRoundTrip() {
+        val list = listOf(kr.hui.takt.data.Preset(120, 4, 1), kr.hui.takt.data.Preset(90, 3, 3))
+        assertEquals(list, kr.hui.takt.data.Preset.decode(kr.hui.takt.data.Preset.encode(list)))
+    }
+
+    @Test fun decodeIgnoresGarbageAndClamps() {
+        val d = kr.hui.takt.data.Preset.decode("120,4,1;bad;999,0,9;")
+        assertEquals(listOf(kr.hui.takt.data.Preset(120, 4, 1), kr.hui.takt.data.Preset(BeatGrid.MAX_BPM, 1, 4)), d)
+        assertEquals(emptyList<kr.hui.takt.data.Preset>(), kr.hui.takt.data.Preset.decode(null))
+    }
+
+    @Test fun savingMovesToFrontWithoutDuplicates() {
+        val s = kr.hui.takt.data.MetronomeSettings(
+            bpm = 90, beatsPerBar = 3, subdivision = 1,
+            presets = listOf(kr.hui.takt.data.Preset(120, 4, 1), kr.hui.takt.data.Preset(90, 3, 1)),
+        ).withPresetSaved()
+        assertEquals(listOf(kr.hui.takt.data.Preset(90, 3, 1), kr.hui.takt.data.Preset(120, 4, 1)), s.presets)
+    }
+}

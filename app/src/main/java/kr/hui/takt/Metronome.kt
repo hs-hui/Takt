@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kr.hui.takt.data.MetronomeSettings
+import kr.hui.takt.data.Preset
 import kr.hui.takt.data.SettingsRepository
 import kr.hui.takt.data.TrainerSettings
 import kr.hui.takt.data.nextBpm
@@ -134,6 +135,11 @@ object Metronome {
     fun setTrainer(change: (TrainerSettings) -> TrainerSettings) =
         update { it.copy(trainer = change(it.trainer).sanitized()) }
 
+    fun setKeepScreenOn(on: Boolean) = update { it.copy(keepScreenOn = on) }
+    fun savePreset() = update { it.withPresetSaved() }
+    fun applyPreset(p: Preset) = update { it.withPresetApplied(p) }
+    fun deletePreset(p: Preset) = update { s -> s.copy(presets = s.presets - p) }
+
     fun tap() {
         tapTempo.tap(SystemClock.elapsedRealtimeNanos())?.let { setBpm(it) }
     }
@@ -154,11 +160,16 @@ object Metronome {
         if (newSettings.trainer.enabled != old.settings.trainer.enabled) {
             old.grid?.let { resetTrainer(it, newSettings) }
         }
+        if (newSettings.engineKey() == old.settings.engineKey()) return
         // 베젤을 빠르게 돌리면 변경이 연달아 들어온다. 매번 진동을 다시 걸면 펄스가 잘리므로
         // 잠깐 모았다가 한 번에 적용한다. 화면 숫자는 즉시 바뀐다.
         handler.removeCallbacks(applyRunnable)
         handler.postDelayed(applyRunnable, APPLY_DEBOUNCE_MS)
     }
+
+    /** 진동 출력에 영향을 주는 설정만 */
+    private fun MetronomeSettings.engineKey() =
+        listOf(bpm, beatsPerBar, subdivision, strength, if (accentEnabled) 1 else 0)
 
     private val applyRunnable = Runnable { applySettingsToEngine() }
 
