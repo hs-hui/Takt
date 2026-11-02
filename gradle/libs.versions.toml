@@ -36,6 +36,7 @@ androidx-wear-tiles = { module = "androidx.wear.tiles:tiles", version.ref = "til
 androidx-wear-tiles-renderer = { module = "androidx.wear.tiles:tiles-renderer", version.ref = "tiles" }
 androidx-wear-protolayout = { module = "androidx.wear.protolayout:protolayout", version.ref = "protolayout" }
 androidx-wear-protolayout-material = { module = "androidx.wear.protolayout:protolayout-material", version.ref = "protolayout" }
+wear-complications-ktx = { module = "androidx.wear.watchface:watchface-complications-data-source-ktx", version = "1.2.1" }
 guava = { module = "com.google.guava:guava", version = "33.4.8-android" }
 androidx-concurrent-futures = { module = "androidx.concurrent:concurrent-futures", version.ref = "concurrentFutures" }
 robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }

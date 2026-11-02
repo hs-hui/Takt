@@ -31,4 +31,5 @@
     <string name="keep_screen_on">재생 중 화면 켜두기</string>
     <string name="keep_screen_on_hint">배터리 소모 증가</string>
     <string name="accent_ring_hint">메인 링을 탭하면 박별로 강박/무음 지정</string>
+    <string name="complication_label">Takt BPM</string>
 </resources>

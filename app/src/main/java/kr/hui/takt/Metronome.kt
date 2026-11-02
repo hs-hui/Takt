@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kr.hui.takt.complication.BpmComplicationService
 import kr.hui.takt.data.MetronomeSettings
 import kr.hui.takt.data.Preset
 import kr.hui.takt.data.SettingsRepository
@@ -72,13 +73,14 @@ object Metronome {
         engine = HapticEngine(appContext)
         repo = SettingsRepository(appContext)
         scope.launch {
-            // 타일이 현재 상태를 보여주도록 변경 시 갱신 요청
+            // 타일·컴플리케이션이 현재 상태를 보여주도록 변경 시 갱신 요청
             _state.map { Triple(it.playing, it.settings.bpm, it.settings.beatsPerBar to it.settings.subdivision) }
                 .distinctUntilChanged()
                 .drop(1)
                 .debounce(300)
                 .collect {
                     TileService.getUpdater(appContext).requestUpdate(MetronomeTileService::class.java)
+                    BpmComplicationService.requestUpdate(appContext)
                 }
         }
         scope.launch {

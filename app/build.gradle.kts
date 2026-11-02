@@ -61,6 +61,7 @@ dependencies {
     implementation(libs.androidx.wear.protolayout)
     implementation(libs.androidx.wear.protolayout.material)
     implementation(libs.androidx.concurrent.futures)
+    implementation(libs.wear.complications.ktx)
     // 타일 API 의 ListenableFuture (릴리스는 R8 이 사용하는 부분만 남김)
     implementation(libs.guava)
 
