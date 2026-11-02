@@ -58,6 +58,26 @@ class ScreenshotTest {
         )
     }
 
+    /** 2번째 박(마디 위치 1)이 울리고 70% 지난 시점: 1번 칸은 흐려지는 중, 2번 칸이 차오르는 중 */
+    @Test fun mainFilling() = capture("main_filling") {
+        val grid = BeatGrid(0, 0, 120, 4)
+        MainScreen(
+            MetronomeState(MetronomeSettings(bpm = 120), grid = grid),
+            {}, {}, {}, {},
+            ringNow = grid.timeOfBeat(1) + (grid.beatNanos * 0.7).toLong(),
+        )
+    }
+
+    /** 박 직후: 번쩍임 */
+    @Test fun mainFlash() = capture("main_flash") {
+        val grid = BeatGrid(0, 0, 120, 4)
+        MainScreen(
+            MetronomeState(MetronomeSettings(bpm = 120), grid = grid),
+            {}, {}, {}, {},
+            ringNow = grid.timeOfBeat(4) + 20_000_000L,
+        )
+    }
+
     @Test fun ambient() = capture("ambient") {
         AmbientScreen(
             MetronomeState(

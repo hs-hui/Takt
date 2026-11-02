@@ -21,6 +21,11 @@ class PulseScheduler(
     private val onPulse: (pulse: Pulse, config: PulseConfig) -> Unit,
     private val spinNanos: Long = 700_000L,
     private val threadSetup: () -> Unit = {},
+    /**
+     * 펄스 시각보다 얼마나 먼저 [onPulse] 를 부를지. 진동 서비스 처리·모터 기동 시간을 보정해
+     * "느껴지는" 시점이 펄스 시각에 오도록 한다. 펄스마다 다시 읽는다.
+     */
+    private val leadNanos: () -> Long = { 0L },
 ) {
     @Volatile var config: PulseConfig? = null
         private set
@@ -54,8 +59,9 @@ class PulseScheduler(
         var lastFired = Long.MIN_VALUE
         outer@ while (!me.isInterrupted && thread === me) {
             val c = config ?: break
-            val pulse = PulseClock.nextPulseAfter(c.grid, maxOf(clock(), lastFired), c.subdivision)
-            val target = pulse.timeNanos
+            val lead = leadNanos()
+            val pulse = PulseClock.nextPulseAfter(c.grid, maxOf(clock() + lead, lastFired), c.subdivision)
+            val target = pulse.timeNanos - lead
             // 대부분은 잠들어 기다리고
             while (true) {
                 if (config !== c || me.isInterrupted) continue@outer
@@ -67,7 +73,7 @@ class PulseScheduler(
             while (clock() < target) {
                 if (config !== c) continue@outer
             }
-            lastFired = target
+            lastFired = pulse.timeNanos
             onPulse(pulse, c)
         }
     }

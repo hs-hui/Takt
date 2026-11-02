@@ -55,6 +55,7 @@ fun TaktApp(ambient: Boolean = false) {
                             onApplyPreset = Metronome::applyPreset,
                             onDeletePreset = Metronome::deletePreset,
                             onTimingMode = Metronome::setTimingMode,
+                            onHapticLead = Metronome::setHapticLead,
                             timingStats = { Metronome.timingStats },
                         ),
                     )

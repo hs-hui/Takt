@@ -48,6 +48,8 @@ fun MainScreen(
     onTap: () -> Unit,
     onOpenSettings: () -> Unit,
     onBeatTap: (Int) -> Unit = {},
+    /** 스크린샷 테스트용 고정 시각 */
+    ringNow: Long? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val focusRequester = remember { FocusRequester() }
@@ -74,6 +76,7 @@ fun MainScreen(
                 idleColor = colors.surfaceContainerHigh,
                 modifier = Modifier.fillMaxSize(),
                 onBeatTap = onBeatTap,
+                fixedNow = ringNow,
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(

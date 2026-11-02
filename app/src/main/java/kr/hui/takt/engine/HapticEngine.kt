@@ -30,7 +30,7 @@ enum class TimingMode {
 /** DIRECT 모드에서 앱이 진동을 건 시각의 오차 통계 (진단용). */
 data class TimingStats(
     val samples: Int,
-    /** 목표 시각 대비 vibrate() 호출 시작의 평균/최대 오차 (ms) */
+    /** 진동 시작 추정 시각(vibrate() 호출 종료)과 목표 시각의 평균/최대 차이 (ms) */
     val meanLateMs: Double,
     val maxLateMs: Double,
     /** vibrate() 호출 자체에 걸린 시간 평균/최대 (ms) — 시스템 진동 서비스 응답 */
@@ -62,13 +62,18 @@ class HapticEngine(context: Context) {
     /**
      * 격자 [grid] 를 따라 재생한다. 이미 재생 중이면 다음 펄스부터 새 설정으로 이어진다.
      */
+    /** 사용자 보정: 진동을 이만큼 일찍 건다 (음수면 늦게). */
+    @Volatile private var userLeadNanos = 0L
+
     fun play(
         mode: TimingMode,
         grid: BeatGrid,
         style: HapticStyle,
         subdivision: Int,
         levels: IntArray?,
+        leadMs: Int = 0,
     ) {
+        userLeadNanos = leadMs * 1_000_000L
         val st = effective(style)
         when (mode) {
             TimingMode.DIRECT -> {
@@ -106,10 +111,11 @@ class HapticEngine(context: Context) {
     }
 
     private fun playWaveform(grid: BeatGrid, style: HapticStyle, subdivision: Int, levels: IntArray?) {
+        val lead = userLeadNanos
         val now = SystemClock.elapsedRealtimeNanos()
         // 다음 "펄스"부터 시작 (다음 박부터 시작하면 그 사이 세분 펄스가 빠진다)
-        val first = PulseClock.nextPulseAfter(grid, now + MIN_LEAD_NANOS, subdivision)
-        val delayMs = ((first.timeNanos - now) / 1_000_000L).coerceAtLeast(0)
+        val first = PulseClock.nextPulseAfter(grid, now + lead + MIN_LEAD_NANOS, subdivision)
+        val delayMs = ((first.timeNanos - lead - now) / 1_000_000L).coerceAtLeast(0)
         val pattern = HapticPattern.build(
             bpm = grid.bpm,
             beatsPerBar = grid.beatsPerBar,
@@ -151,7 +157,11 @@ class HapticEngine(context: Context) {
             clock = SystemClock::elapsedRealtimeNanos,
             onPulse = ::fire,
             threadSetup = { Process.setThreadPriority(Process.THREAD_PRIORITY_URGENT_AUDIO) },
+            // 자동 보정(최근 vibrate() 호출 시간 평균) + 사용자 보정
+            leadNanos = { autoLeadNanos + userLeadNanos },
         )
+        /** 최근 vibrate() 호출 평균 시간. 진동은 대략 호출이 끝날 무렵 시작되므로 그만큼 일찍 건다. */
+        @Volatile private var autoLeadNanos = 0L
         val config: PulseConfig? get() = scheduler.config
 
         @Volatile var stats: TimingStats? = null
@@ -164,7 +174,7 @@ class HapticEngine(context: Context) {
         private val effects = ConcurrentHashMap<Long, VibrationEffect>()
 
         fun play(c: PulseConfig) {
-            if (!scheduler.running) statCount = 0
+            if (!scheduler.running) statCount = 0 // 자동 보정값은 유지 (기기 특성)
             scheduler.play(c)
         }
 
@@ -183,7 +193,9 @@ class HapticEngine(context: Context) {
             } catch (_: RuntimeException) {
                 // 진동 서비스 일시 오류: 다음 펄스에서 다시 시도
             }
-            record(callStart - pulse.timeNanos, SystemClock.elapsedRealtimeNanos() - callStart)
+            val callEnd = SystemClock.elapsedRealtimeNanos()
+            // 앱 오차: 호출이 끝난(≈진동 시작) 시각과 펄스 시각의 차이
+            record(callEnd - pulse.timeNanos + userLeadNanos, callEnd - callStart)
         }
 
         private fun record(late: Long, call: Long) {
@@ -199,6 +211,7 @@ class HapticEngine(context: Context) {
                     sc += callNs[k]; mc = maxOf(mc, callNs[k])
                 }
                 stats = TimingStats(n, sl / n / 1e6, ml / 1e6, sc / n / 1e6, mc / 1e6)
+                autoLeadNanos = (sc / n).toLong().coerceIn(0L, MAX_AUTO_LEAD_NANOS)
             }
         }
     }
@@ -207,5 +220,6 @@ class HapticEngine(context: Context) {
         /** vibrate() 호출 지연을 감안한 최소 여유 시간 (파형 모드). */
         private const val MIN_LEAD_NANOS = 15_000_000L
         private const val STATS_WINDOW = 64
+        private const val MAX_AUTO_LEAD_NANOS = 25_000_000L
     }
 }

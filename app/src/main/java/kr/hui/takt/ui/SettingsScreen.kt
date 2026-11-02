@@ -46,6 +46,7 @@ class SettingsActions(
     val onApplyPreset: (Preset) -> Unit = {},
     val onDeletePreset: (Preset) -> Unit = {},
     val onTimingMode: (TimingMode) -> Unit = {},
+    val onHapticLead: (Int) -> Unit = {},
     /** DIRECT 모드 타이밍 진단 (1초마다 읽음) */
     val timingStats: () -> TimingStats? = { null },
 )
@@ -188,6 +189,24 @@ fun SettingsScreen(
                         Text(stringResource(if (direct) R.string.timing_direct_hint else R.string.timing_waveform_hint))
                     },
                     modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            item {
+                StepperRow(
+                    label = stringResource(R.string.haptic_lead),
+                    value = stringResource(R.string.ms_value, settings.hapticLeadMs),
+                    onMinus = { actions.onHapticLead(settings.hapticLeadMs - 5) },
+                    onPlus = { actions.onHapticLead(settings.hapticLeadMs + 5) },
+                    minusEnabled = settings.hapticLeadMs > MetronomeSettings.MIN_LEAD_MS,
+                    plusEnabled = settings.hapticLeadMs < MetronomeSettings.MAX_LEAD_MS,
+                )
+            }
+            item {
+                Text(
+                    stringResource(R.string.haptic_lead_hint),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
                 )
             }
             if (settings.timingMode == TimingMode.DIRECT) {

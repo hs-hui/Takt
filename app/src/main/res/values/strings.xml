@@ -37,6 +37,9 @@
     <string name="timing_direct">박마다 직접 진동</string>
     <string name="timing_direct_hint">권장. 끄면 시스템 반복 패턴 사용</string>
     <string name="timing_waveform_hint">시스템 반복 패턴 (설정 변경·화면 꺼짐 때 한 번 튈 수 있음)</string>
-    <string name="timing_stats">앱 오차 평균 %1$.1f / 최대 %2$.1f ms\n시스템 응답 평균 %3$.1f / 최대 %4$.1f ms</string>
+    <string name="timing_stats">박 오차 평균 %1$.1f / 최대 %2$.1f ms\n시스템 응답 평균 %3$.1f / 최대 %4$.1f ms (자동 보정됨)</string>
+    <string name="haptic_lead">진동 앞당기기</string>
+    <string name="ms_value">%1$+d ms</string>
+    <string name="haptic_lead_hint">진동이 밀려 느껴지면 올리고, 서두르면 내리세요. 시스템 응답 시간은 자동으로 보정됩니다.</string>
     <string name="timing_stats_empty">재생하면 타이밍 진단이 표시됩니다</string>
 </resources>

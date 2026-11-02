@@ -54,6 +54,24 @@ class PulseSchedulerTest {
         assertEquals(listOf(200L, 200L, 200L, 400L, 400L), gaps.take(5))
     }
 
+    @Test fun leadFiresEarlyByTheGivenAmount() {
+        val fired = Collections.synchronizedList(mutableListOf<Fired>())
+        val s = PulseScheduler(
+            System::nanoTime,
+            { p, c -> fired += Fired(p, System.nanoTime(), c.grid.bpm) },
+            leadNanos = { 20 * ms },
+        )
+        s.play(PulseConfig(BeatGrid(System.nanoTime() + 80 * ms, 0, 300, 4), style, 1, null))
+        Thread.sleep(700)
+        s.stop()
+        val list = synchronized(fired) { fired.toList() }
+        assertEquals((0L until list.size).toList(), list.map { it.pulse.beat })
+        list.forEach {
+            val early = it.pulse.timeNanos - it.at
+            assertTrue("early ${early / 1e6}ms", early in (5 * ms)..(20 * ms))
+        }
+    }
+
     @Test fun stopHaltsQuickly() {
         val fired = Collections.synchronizedList(mutableListOf<Fired>())
         val s = PulseScheduler(System::nanoTime, { p, c -> fired += Fired(p, System.nanoTime(), c.grid.bpm) })

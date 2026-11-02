@@ -161,6 +161,7 @@ object Metronome {
 
     fun setKeepScreenOn(on: Boolean) = update { it.copy(keepScreenOn = on) }
     fun setTimingMode(mode: TimingMode) = update { it.copy(timingMode = mode) }
+    fun setHapticLead(ms: Int) = update { it.copy(hapticLeadMs = ms).sanitized() }
     fun savePreset() = update { it.withPresetSaved() }
     fun applyPreset(p: Preset) = update { it.withPresetApplied(p) }
     fun deletePreset(p: Preset) = update { s -> s.copy(presets = s.presets - p) }
@@ -195,7 +196,7 @@ object Metronome {
 
     /** 진동 출력에 영향을 주는 설정만 */
     private fun MetronomeSettings.engineKey() =
-        listOf(bpm, beatsPerBar, subdivision, strength, levels().toList(), timingMode)
+        listOf(bpm, beatsPerBar, subdivision, strength, levels().toList(), timingMode, hapticLeadMs)
 
     private val applyRunnable = Runnable { applySettingsToEngine() }
 
@@ -224,7 +225,7 @@ object Metronome {
      * (특히 파형 모드) 꼭 필요할 때만 부른다: 시작, 진동 관련 설정 변경, 트레이너 단계.
      */
     private fun play(grid: BeatGrid, s: MetronomeSettings) {
-        engine.play(s.timingMode, grid, s.hapticStyle(), s.subdivision, s.levels())
+        engine.play(s.timingMode, grid, s.hapticStyle(), s.subdivision, s.levels(), s.hapticLeadMs)
     }
 
     // ---- 스피드 트레이너 ----

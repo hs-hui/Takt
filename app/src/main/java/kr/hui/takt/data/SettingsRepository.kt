@@ -28,6 +28,8 @@ data class MetronomeSettings(
     /** 박별 세기(0 무음/1 보통/2 강박). 비어 있으면 accentEnabled 기본 패턴 */
     val beatLevels: List<Int> = emptyList(),
     val timingMode: TimingMode = TimingMode.DIRECT,
+    /** 진동을 이만큼(ms) 일찍 건다. 모터 기동 지연 보정 (음수면 늦게) */
+    val hapticLeadMs: Int = 10,
 ) {
     fun levels(): IntArray = IntArray(beatsPerBar) { i ->
         beatLevels.getOrNull(i) ?: HapticPattern.defaultLevel(i, beatsPerBar, accentEnabled)
@@ -71,6 +73,7 @@ data class MetronomeSettings(
         subdivision = subdivision.coerceIn(1, MAX_SUBDIVISION),
         trainer = trainer.sanitized(),
         presets = presets.map { it.sanitized() }.distinct().take(MAX_PRESETS),
+        hapticLeadMs = hapticLeadMs.coerceIn(MIN_LEAD_MS, MAX_LEAD_MS),
         beatLevels = if (beatLevels.size == beatsPerBar) beatLevels.map { it.coerceIn(0, 2) } else emptyList(),
     )
 
@@ -78,6 +81,8 @@ data class MetronomeSettings(
         val STRENGTH_AMPLITUDES = intArrayOf(60, 100, 150, 200, 255)
         const val MAX_SUBDIVISION = 4
         const val MAX_PRESETS = 8
+        const val MIN_LEAD_MS = -30
+        const val MAX_LEAD_MS = 60
     }
 }
 
@@ -147,6 +152,7 @@ class SettingsRepository(private val context: Context) {
         val PRESETS = stringPreferencesKey("presets")
         val BEAT_LEVELS = stringPreferencesKey("beat_levels")
         val TIMING_MODE = stringPreferencesKey("timing_mode")
+        val HAPTIC_LEAD = intPreferencesKey("haptic_lead_ms")
     }
 
     suspend fun load(): MetronomeSettings {
@@ -168,6 +174,7 @@ class SettingsRepository(private val context: Context) {
             presets = Preset.decode(p[Keys.PRESETS]),
             beatLevels = p[Keys.BEAT_LEVELS].orEmpty().split(',').mapNotNull { it.toIntOrNull() },
             timingMode = TimingMode.entries.firstOrNull { it.name == p[Keys.TIMING_MODE] } ?: d.timingMode,
+            hapticLeadMs = p[Keys.HAPTIC_LEAD] ?: d.hapticLeadMs,
         ).sanitized()
     }
 
@@ -186,6 +193,7 @@ class SettingsRepository(private val context: Context) {
             p[Keys.PRESETS] = Preset.encode(s.presets)
             p[Keys.BEAT_LEVELS] = s.beatLevels.joinToString(",")
             p[Keys.TIMING_MODE] = s.timingMode.name
+            p[Keys.HAPTIC_LEAD] = s.hapticLeadMs
         }
     }
 }
