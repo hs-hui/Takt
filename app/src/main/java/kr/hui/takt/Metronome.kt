@@ -115,7 +115,8 @@ object Metronome {
         if (!_state.value.playing) return
         handler.removeCallbacksAndMessages(null)
         engine.stop()
-        val restored = trainerStartBpm
+        // 트레이너가 켜진 채로 끝나면 시작 BPM 으로 되돌린다
+        val restored = trainerStartBpm.takeIf { _state.value.settings.trainer.enabled }
         trainerStartBpm = null
         trainerNextBeat = Long.MAX_VALUE
         _state.value = _state.value.let { st ->
@@ -201,7 +202,13 @@ object Metronome {
                 oldGrid.retimed(SystemClock.elapsedRealtimeNanos(), s.bpm, s.beatsPerBar)
             } else oldGrid
         _state.value = st.copy(grid = grid)
-        if (grid.beatsPerBar != oldGrid.beatsPerBar) resetTrainer(grid, s)
+        if (grid.beatsPerBar != oldGrid.beatsPerBar) {
+            resetTrainer(grid, s)
+        } else if (grid !== oldGrid) {
+            // 템포가 바뀌면 다음 트레이너 시점(박 번호는 그대로)의 실제 시각도 바뀐다
+            handler.removeCallbacks(trainerRunnable)
+            scheduleTrainer(grid)
+        }
         play(grid, s)
     }
 
@@ -262,12 +269,14 @@ object Metronome {
             trainerNextBeat = Long.MAX_VALUE
             return
         }
-        handler.removeCallbacks(applyRunnable)
         val s = st.settings.copy(bpm = nextBpm)
         val newGrid = grid.retimed(SystemClock.elapsedRealtimeNanos(), nextBpm, grid.beatsPerBar)
         _state.value = st.copy(settings = s, grid = newGrid)
         play(newGrid, s)
-        trainerNextBeat = newGrid.originBeat + t.everyBars.toLong() * newGrid.beatsPerBar
+        // 박 번호는 retimed 후에도 이어지므로 마디 경계 기준으로 다음 시점을 잡는다
+        // (깨어나는 게 늦어 새 템포가 한 박 늦게 시작됐더라도 마디 정렬은 유지)
+        val span = t.everyBars.toLong() * newGrid.beatsPerBar
+        do trainerNextBeat += span while (trainerNextBeat <= newGrid.originBeat)
         scheduleTrainer(newGrid)
     }
 
