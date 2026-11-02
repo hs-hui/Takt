@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Takt</string>
+    <string name="play">재생</string>
+    <string name="stop">정지</string>
+    <string name="tap">TAP</string>
+    <string name="settings">설정</string>
+    <string name="beats_per_bar">마디당 박</string>
+    <string name="accent_first_beat">첫 박 강세</string>
+    <string name="strength">진동 세기</string>
+    <string name="no_vibrator">이 기기에는 진동 모터가 없습니다</string>
+    <string name="channel_name">메트로놈 재생</string>
+</resources>
