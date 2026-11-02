@@ -49,7 +49,7 @@ class ScreenshotTest {
             MetronomeSettings(
                 presets = listOf(
                     kr.hui.takt.data.Preset(100, 4, 1),
-                    kr.hui.takt.data.Preset(72, 3, 3),
+                    kr.hui.takt.data.Preset(72, 7, 3, listOf(2, 1, 2, 1, 2, 1, 0)),
                 ),
             ),
             hasVibrator = true,

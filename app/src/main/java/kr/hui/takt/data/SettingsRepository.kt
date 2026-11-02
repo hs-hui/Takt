@@ -43,7 +43,7 @@ data class MetronomeSettings(
         return copy(beatLevels = l.toList())
     }
 
-    fun currentPreset() = Preset(bpm, beatsPerBar, subdivision)
+    fun currentPreset() = Preset(bpm, beatsPerBar, subdivision, beatLevels)
 
     fun withPresetSaved(): MetronomeSettings {
         val p = currentPreset()
@@ -51,7 +51,7 @@ data class MetronomeSettings(
     }
 
     fun withPresetApplied(p: Preset) =
-        copy(bpm = p.bpm, beatsPerBar = p.beatsPerBar, subdivision = p.subdivision).sanitized()
+        copy(bpm = p.bpm, beatsPerBar = p.beatsPerBar, subdivision = p.subdivision, beatLevels = p.beatLevels).sanitized()
 
     fun hapticStyle(): HapticStyle {
         val amp = STRENGTH_AMPLITUDES[strength - 1]
@@ -79,21 +79,37 @@ data class MetronomeSettings(
     }
 }
 
-data class Preset(val bpm: Int, val beatsPerBar: Int, val subdivision: Int) {
-    fun sanitized() = Preset(
-        bpm.coerceIn(BeatGrid.MIN_BPM, BeatGrid.MAX_BPM),
-        beatsPerBar.coerceIn(BeatGrid.MIN_BEATS, BeatGrid.MAX_BEATS),
-        subdivision.coerceIn(1, MetronomeSettings.MAX_SUBDIVISION),
-    )
+data class Preset(
+    val bpm: Int,
+    val beatsPerBar: Int,
+    val subdivision: Int,
+    /** 박별 세기. 비어 있으면 기본 */
+    val beatLevels: List<Int> = emptyList(),
+) {
+    fun sanitized(): Preset {
+        val beats = beatsPerBar.coerceIn(BeatGrid.MIN_BEATS, BeatGrid.MAX_BEATS)
+        return Preset(
+            bpm.coerceIn(BeatGrid.MIN_BPM, BeatGrid.MAX_BPM),
+            beats,
+            subdivision.coerceIn(1, MetronomeSettings.MAX_SUBDIVISION),
+            if (beatLevels.size == beats) beatLevels.map { it.coerceIn(0, 2) } else emptyList(),
+        )
+    }
 
     companion object {
-        /** "120,4,1;90,3,2" 형식 */
-        fun encode(list: List<Preset>) = list.joinToString(";") { "${it.bpm},${it.beatsPerBar},${it.subdivision}" }
+        /** "120,4,1;90,3,2,2-1-0" 형식 (4번째 칸: 박별 세기, 선택) */
+        fun encode(list: List<Preset>) = list.joinToString(";") { p ->
+            "${p.bpm},${p.beatsPerBar},${p.subdivision}" +
+                if (p.beatLevels.isEmpty()) "" else "," + p.beatLevels.joinToString("-")
+        }
 
         fun decode(s: String?): List<Preset> =
             s.orEmpty().split(';').mapNotNull { item ->
-                val n = item.split(',').map { it.trim().toIntOrNull() }
-                if (n.size == 3 && n.all { it != null }) Preset(n[0]!!, n[1]!!, n[2]!!).sanitized() else null
+                val f = item.split(',').map { it.trim() }
+                if (f.size !in 3..4) return@mapNotNull null
+                val n = f.take(3).map { it.toIntOrNull() ?: return@mapNotNull null }
+                val levels = f.getOrNull(3)?.split('-')?.mapNotNull { it.toIntOrNull() }.orEmpty()
+                Preset(n[0], n[1], n[2], levels).sanitized()
             }
     }
 }

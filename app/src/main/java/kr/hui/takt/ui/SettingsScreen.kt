@@ -109,7 +109,7 @@ fun SettingsScreen(
                     onClick = { actions.onApplyPreset(p) },
                     onLongClick = { actions.onDeletePreset(p) },
                     onLongClickLabel = stringResource(R.string.preset_delete),
-                    label = { Text("${p.bpm} BPM") },
+                    label = { Text("${p.bpm} BPM" + if (p.beatLevels.isNotEmpty()) " · " + accentPattern(p.beatLevels) else "") },
                     secondaryLabel = { Text(stringResource(R.string.meter_label, p.beatsPerBar, subdivisionLabel(p.subdivision))) },
                     colors = if (p == settings.currentPreset()) ButtonDefaults.buttonColors()
                     else ButtonDefaults.filledTonalButtonColors(),
@@ -201,6 +201,10 @@ fun subdivisionLabel(n: Int): String = stringResource(
         else -> R.string.sub_quarter
     },
 )
+
+/** 박별 세기를 짧게: 강박 ●, 보통 ·, 무음 ○ */
+private fun accentPattern(levels: List<Int>) =
+    levels.joinToString("") { when (it) { 2 -> "●"; 0 -> "○"; else -> "·" } }
 
 @Composable
 private fun presetLabel(p: Preset) =

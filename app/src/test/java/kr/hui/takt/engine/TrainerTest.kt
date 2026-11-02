@@ -40,6 +40,20 @@ class PresetTest {
         assertEquals(emptyList<kr.hui.takt.data.Preset>(), kr.hui.takt.data.Preset.decode(null))
     }
 
+    @Test fun presetKeepsBeatLevelsAndOldFormatStillLoads() {
+        val p = kr.hui.takt.data.Preset(100, 3, 1, listOf(2, 0, 1))
+        val enc = kr.hui.takt.data.Preset.encode(listOf(p))
+        assertEquals("100,3,1,2-0-1", enc)
+        assertEquals(listOf(p), kr.hui.takt.data.Preset.decode(enc))
+        // 이전 형식(3칸)
+        assertEquals(listOf(kr.hui.takt.data.Preset(100, 3, 1)), kr.hui.takt.data.Preset.decode("100,3,1"))
+        // 박 수와 맞지 않는 세기는 버림
+        assertEquals(emptyList<Int>(), kr.hui.takt.data.Preset.decode("100,4,1,2-1")[0].beatLevels)
+        // 적용하면 설정에 반영
+        val s = kr.hui.takt.data.MetronomeSettings().withPresetApplied(p)
+        assertEquals(listOf(2, 0, 1), s.levels().toList())
+    }
+
     @Test fun savingMovesToFrontWithoutDuplicates() {
         val s = kr.hui.takt.data.MetronomeSettings(
             bpm = 90, beatsPerBar = 3, subdivision = 1,
