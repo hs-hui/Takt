@@ -74,6 +74,8 @@ fun BeatRing(
     onBeatTap: ((Int) -> Unit)? = null,
     /** 미리보기·테스트용 고정 시각 (null 이면 실시간) */
     fixedNow: Long? = null,
+    /** 박마다 화면 전체 번쩍임 */
+    screenFlash: Boolean = true,
 ) {
     val beatsPerBar = levels.size
     var now by remember { mutableLongStateOf(fixedNow ?: 0L) }
@@ -106,7 +108,7 @@ fun BeatRing(
 
     Canvas(modifier.then(tapModifier)) {
         val frame = grid?.let { ringFrame(it, fixedNow ?: now) }
-        val strokeWidth = 7.dp.toPx()
+        val strokeWidth = 12.dp.toPx()
         val inset = strokeWidth * 0.7f + 2.dp.toPx()
         val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
         val gapDeg = if (beatsPerBar == 1) 0f else 6f
@@ -116,6 +118,15 @@ fun BeatRing(
             color, -90f + i * (360f / beatsPerBar) + gapDeg / 2, sweepAngle, inset, arcSize, width,
         )
 
+        // 화면 전체 번쩍임 (강박은 더 세게)
+        if (screenFlash && frame != null && frame.currentPos >= 0 && frame.flash > 0f) {
+            val level = levels[frame.currentPos]
+            if (level != HapticPattern.LEVEL_MUTE) {
+                val accent = level == HapticPattern.LEVEL_ACCENT
+                drawRect((if (accent) accentColor else activeColor).copy(alpha = frame.flash * if (accent) 0.5f else 0.3f))
+            }
+        }
+
         for (i in 0 until beatsPerBar) {
             val level = levels[i]
             val style = segmentStyle(level, activeColor, accentColor, idleColor, strokeWidth)
@@ -124,11 +135,11 @@ fun BeatRing(
             if (frame == null || level == HapticPattern.LEVEL_MUTE) continue
             // 다음 박: 차오르는 바
             if (i == frame.nextPos && frame.fill > 0f) {
-                arc(i, style.lit.copy(alpha = 0.6f + 0.4f * frame.fill), style.width, sweep * frame.fill)
+                arc(i, style.lit.copy(alpha = 0.7f + 0.3f * frame.fill), style.width, sweep * frame.fill)
             }
             // 방금 울린 박: 번쩍임
             if (i == frame.currentPos && frame.flash > 0f) {
-                arc(i, style.lit.copy(alpha = frame.flash), style.width * (1f + 0.35f * frame.flash))
+                arc(i, style.lit.copy(alpha = frame.flash), style.width * (1f + 0.5f * frame.flash))
             }
         }
     }
@@ -137,9 +148,9 @@ fun BeatRing(
 private class SegmentStyle(val base: Color, val lit: Color, val width: Float)
 
 private fun segmentStyle(level: Int, active: Color, accent: Color, idle: Color, w: Float) = when (level) {
-    HapticPattern.LEVEL_ACCENT -> SegmentStyle(accent.copy(alpha = 0.3f), accent, w * 1.3f)
+    HapticPattern.LEVEL_ACCENT -> SegmentStyle(accent.copy(alpha = 0.45f), accent, w * 1.25f)
     HapticPattern.LEVEL_MUTE -> SegmentStyle(idle.copy(alpha = 0.35f), idle, w * 0.35f)
-    else -> SegmentStyle(idle.copy(alpha = 0.7f), active, w)
+    else -> SegmentStyle(idle, active, w)
 }
 
 private fun DrawScope.drawSegment(

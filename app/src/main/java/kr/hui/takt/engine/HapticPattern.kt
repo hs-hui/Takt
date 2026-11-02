@@ -129,13 +129,15 @@ class HapticPattern(
 
 /** 진동 느낌 설정. 진폭은 1..255. */
 data class HapticStyle(
-    val amplitude: Int = 150,
+    val amplitude: Int = 255,
     val accentAmplitude: Int = 255,
-    val subAmplitude: Int = 70,
-    val pulseMs: Long = 30,
-    val accentPulseMs: Long = 55,
-    val subPulseMs: Long = 16,
+    val subAmplitude: Int = 180,
+    val pulseMs: Long = 80,
+    val accentPulseMs: Long = 120,
+    val subPulseMs: Long = 48,
     val accentEnabled: Boolean = true,
+    /** 시스템 클릭 효과(predefined) 사용. 직접 진동 모드에서만 */
+    val crisp: Boolean = false,
 ) {
     /** 진폭 제어가 안 되는 기기: 진폭은 기본값, 강박/세분은 길이로만 구분. */
     fun withoutAmplitudeControl(defaultAmplitude: Int) = copy(

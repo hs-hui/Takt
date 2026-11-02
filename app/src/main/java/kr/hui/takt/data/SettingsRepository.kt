@@ -18,7 +18,7 @@ data class MetronomeSettings(
     val beatsPerBar: Int = 4,
     val accentEnabled: Boolean = true,
     /** 진동 세기 1..5 */
-    val strength: Int = 3,
+    val strength: Int = 5,
     /** 한 박을 몇 개로 나눌지: 1=4분, 2=8분, 3=셋잇단, 4=16분 */
     val subdivision: Int = 1,
     val trainer: TrainerSettings = TrainerSettings(),
@@ -30,6 +30,10 @@ data class MetronomeSettings(
     val timingMode: TimingMode = TimingMode.DIRECT,
     /** 진동을 이만큼(ms) 일찍 건다. 모터 기동 지연 보정 (음수면 늦게) */
     val hapticLeadMs: Int = 10,
+    /** 시스템 클릭 효과 사용 (기기에 맞춰 조율된 짧고 센 진동) */
+    val crispClick: Boolean = false,
+    /** 박마다 화면 전체 번쩍임 */
+    val screenFlash: Boolean = true,
 ) {
     fun levels(): IntArray = IntArray(beatsPerBar) { i ->
         beatLevels.getOrNull(i) ?: HapticPattern.defaultLevel(i, beatsPerBar, accentEnabled)
@@ -57,12 +61,22 @@ data class MetronomeSettings(
     fun withPresetApplied(p: Preset) =
         copy(bpm = p.bpm, beatsPerBar = p.beatsPerBar, subdivision = p.subdivision, beatLevels = p.beatLevels).sanitized()
 
+    /**
+     * 세기 단계 → 진폭 + 길이. 워치의 진동 모터(LRA)는 짧은 펄스에서 힘을 다 못 내므로
+     * 진폭만이 아니라 길이도 같이 늘려야 세게 느껴진다.
+     */
     fun hapticStyle(): HapticStyle {
         val amp = STRENGTH_AMPLITUDES[strength - 1]
+        val ms = STRENGTH_PULSE_MS[strength - 1]
         return HapticStyle(
             amplitude = amp,
-            subAmplitude = (amp * 45 / 100).coerceAtLeast(30),
+            accentAmplitude = 255,
+            subAmplitude = (amp * 70 / 100).coerceAtLeast(120),
+            pulseMs = ms,
+            accentPulseMs = ms + 40,
+            subPulseMs = (ms * 60 / 100).coerceAtLeast(25),
             accentEnabled = accentEnabled,
+            crisp = crispClick,
         )
     }
 
@@ -78,7 +92,8 @@ data class MetronomeSettings(
     )
 
     companion object {
-        val STRENGTH_AMPLITUDES = intArrayOf(60, 100, 150, 200, 255)
+        val STRENGTH_AMPLITUDES = intArrayOf(150, 190, 225, 255, 255)
+        val STRENGTH_PULSE_MS = longArrayOf(35L, 50L, 65L, 80L, 110L)
         const val MAX_SUBDIVISION = 4
         const val MAX_PRESETS = 8
         const val MIN_LEAD_MS = -30
@@ -142,7 +157,10 @@ class SettingsRepository(private val context: Context) {
         val BPM = intPreferencesKey("bpm")
         val BEATS = intPreferencesKey("beats_per_bar")
         val ACCENT = booleanPreferencesKey("accent")
-        val STRENGTH = intPreferencesKey("strength")
+        // v2: 세기 체계를 바꿨으므로 예전(약한) 저장값은 무시
+        val STRENGTH = intPreferencesKey("strength_v2")
+        val CRISP = booleanPreferencesKey("crisp_click")
+        val SCREEN_FLASH = booleanPreferencesKey("screen_flash")
         val SUBDIVISION = intPreferencesKey("subdivision")
         val TRAINER = booleanPreferencesKey("trainer_enabled")
         val TRAINER_STEP = intPreferencesKey("trainer_step")
@@ -175,6 +193,8 @@ class SettingsRepository(private val context: Context) {
             beatLevels = p[Keys.BEAT_LEVELS].orEmpty().split(',').mapNotNull { it.toIntOrNull() },
             timingMode = TimingMode.entries.firstOrNull { it.name == p[Keys.TIMING_MODE] } ?: d.timingMode,
             hapticLeadMs = p[Keys.HAPTIC_LEAD] ?: d.hapticLeadMs,
+            crispClick = p[Keys.CRISP] ?: d.crispClick,
+            screenFlash = p[Keys.SCREEN_FLASH] ?: d.screenFlash,
         ).sanitized()
     }
 
@@ -194,6 +214,8 @@ class SettingsRepository(private val context: Context) {
             p[Keys.BEAT_LEVELS] = s.beatLevels.joinToString(",")
             p[Keys.TIMING_MODE] = s.timingMode.name
             p[Keys.HAPTIC_LEAD] = s.hapticLeadMs
+            p[Keys.CRISP] = s.crispClick
+            p[Keys.SCREEN_FLASH] = s.screenFlash
         }
     }
 }

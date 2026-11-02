@@ -162,6 +162,11 @@ object Metronome {
     fun setKeepScreenOn(on: Boolean) = update { it.copy(keepScreenOn = on) }
     fun setTimingMode(mode: TimingMode) = update { it.copy(timingMode = mode) }
     fun setHapticLead(ms: Int) = update { it.copy(hapticLeadMs = ms).sanitized() }
+    fun setCrispClick(on: Boolean) {
+        update { it.copy(crispClick = on) }
+        previewIfStopped()
+    }
+    fun setScreenFlash(on: Boolean) = update { it.copy(screenFlash = on) }
     fun savePreset() = update { it.withPresetSaved() }
     fun applyPreset(p: Preset) = update { it.withPresetApplied(p) }
     fun deletePreset(p: Preset) = update { s -> s.copy(presets = s.presets - p) }
@@ -196,7 +201,7 @@ object Metronome {
 
     /** 진동 출력에 영향을 주는 설정만 */
     private fun MetronomeSettings.engineKey() =
-        listOf(bpm, beatsPerBar, subdivision, strength, levels().toList(), timingMode, hapticLeadMs)
+        listOf(bpm, beatsPerBar, subdivision, strength, levels().toList(), timingMode, hapticLeadMs, crispClick)
 
     private val applyRunnable = Runnable { applySettingsToEngine() }
 

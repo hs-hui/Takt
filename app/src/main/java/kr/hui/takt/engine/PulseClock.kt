@@ -29,6 +29,10 @@ object PulseClock {
         return Pulse(n + 1, 0, grid.timeOfBeat(n + 1))
     }
 
+    /** 펄스 종류: 2=강박, 1=보통 박, 0=무음, -1=세분 */
+    fun kindOf(pulse: Pulse, grid: BeatGrid, style: HapticStyle, levels: IntArray?): Int =
+        if (pulse.sub != 0) -1 else levelOf(pulse, grid, style, levels)
+
     private fun levelOf(pulse: Pulse, grid: BeatGrid, style: HapticStyle, levels: IntArray?): Int {
         val pos = grid.barPosition(pulse.beat)
         return levels?.getOrNull(pos) ?: HapticPattern.defaultLevel(pos, grid.beatsPerBar, style.accentEnabled)

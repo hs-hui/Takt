@@ -42,4 +42,7 @@
     <string name="ms_value">%1$+d ms</string>
     <string name="haptic_lead_hint">진동이 밀려 느껴지면 올리고, 서두르면 내리세요. 시스템 응답 시간은 자동으로 보정됩니다.</string>
     <string name="timing_stats_empty">재생하면 타이밍 진단이 표시됩니다</string>
+    <string name="crisp_click">또렷한 클릭</string>
+    <string name="crisp_click_hint">기기 맞춤 시스템 클릭 효과 (짧고 센 진동, 직접 진동 모드)</string>
+    <string name="screen_flash">박마다 화면 번쩍임</string>
 </resources>

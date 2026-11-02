@@ -73,10 +73,11 @@ fun MainScreen(
                 levels = s.levels(),
                 activeColor = colors.primary,
                 accentColor = colors.tertiary,
-                idleColor = colors.surfaceContainerHigh,
+                idleColor = colors.outlineVariant,
                 modifier = Modifier.fillMaxSize(),
                 onBeatTap = onBeatTap,
                 fixedNow = ringNow,
+                screenFlash = s.screenFlash,
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
