@@ -28,6 +28,8 @@ import kr.hui.takt.data.nextBpm
 import kr.hui.takt.engine.BeatGrid
 import kr.hui.takt.engine.HapticEngine
 import kr.hui.takt.engine.TapTempo
+import kr.hui.takt.engine.TimingMode
+import kr.hui.takt.engine.TimingStats
 import kr.hui.takt.service.MetronomeService
 import kr.hui.takt.tile.MetronomeTileService
 
@@ -60,6 +62,9 @@ object Metronome {
     val state: StateFlow<MetronomeState> = _state.asStateFlow()
 
     val hasVibrator: Boolean get() = engine.hasVibrator
+
+    /** DIRECT 모드 타이밍 진단 */
+    val timingStats: TimingStats? get() = engine.timingStats
 
     /** 스피드 트레이너가 다음에 템포를 올릴 박(마디 첫 박) 번호 */
     private var trainerNextBeat = Long.MAX_VALUE
@@ -155,6 +160,7 @@ object Metronome {
         update { it.copy(trainer = change(it.trainer).sanitized()) }
 
     fun setKeepScreenOn(on: Boolean) = update { it.copy(keepScreenOn = on) }
+    fun setTimingMode(mode: TimingMode) = update { it.copy(timingMode = mode) }
     fun savePreset() = update { it.withPresetSaved() }
     fun applyPreset(p: Preset) = update { it.withPresetApplied(p) }
     fun deletePreset(p: Preset) = update { s -> s.copy(presets = s.presets - p) }
@@ -163,11 +169,12 @@ object Metronome {
         tapTempo.tap(SystemClock.elapsedRealtimeNanos())?.let { setBpm(it) }
     }
 
-    /** 화면 꺼짐 등으로 시스템이 진동을 끊었을 수 있을 때 서비스가 호출. */
+    /** 화면 꺼짐 등으로 시스템이 진동을 끊었을 수 있을 때 서비스가 호출. (파형 모드만 영향) */
     fun reanchorNow() {
         val st = _state.value
         val grid = st.grid ?: return
-        play(grid, st.settings)
+        val s = st.settings
+        engine.resync(s.timingMode, grid, s.hapticStyle(), s.subdivision, s.levels())
     }
 
     private fun update(change: (MetronomeSettings) -> MetronomeSettings) {
@@ -188,7 +195,7 @@ object Metronome {
 
     /** 진동 출력에 영향을 주는 설정만 */
     private fun MetronomeSettings.engineKey() =
-        listOf(bpm, beatsPerBar, subdivision, strength, levels().toList())
+        listOf(bpm, beatsPerBar, subdivision, strength, levels().toList(), timingMode)
 
     private val applyRunnable = Runnable { applySettingsToEngine() }
 
@@ -212,25 +219,12 @@ object Metronome {
         play(grid, s)
     }
 
-    private fun play(grid: BeatGrid, s: MetronomeSettings) {
-        engine.playFrom(grid, s.hapticStyle(), s.subdivision, s.levels())
-        scheduleReanchor(grid)
-    }
-
-    // ---- 재정렬 ----
-
-    private val reanchorRunnable = Runnable { reanchorNow() }
-
     /**
-     * 안전장치: 주기적으로 파형을 격자에 다시 맞춘다.
-     * 진행 중인 펄스를 자르지 않도록, 박 펄스가 끝난 직후 시점에 실행한다.
+     * 엔진에 반영. 진동을 다시 걸 때마다 시스템 처리 지연만큼 박이 한 번 튈 수 있으므로
+     * (특히 파형 모드) 꼭 필요할 때만 부른다: 시작, 진동 관련 설정 변경, 트레이너 단계.
      */
-    private fun scheduleReanchor(grid: BeatGrid) {
-        handler.removeCallbacks(reanchorRunnable)
-        val now = SystemClock.elapsedRealtimeNanos()
-        val beat = grid.nextBeatAfter(now + REANCHOR_INTERVAL_NANOS)
-        val at = grid.timeOfBeat(beat) + AFTER_PULSE_NANOS
-        handler.postDelayed(reanchorRunnable, (at - now) / 1_000_000L)
+    private fun play(grid: BeatGrid, s: MetronomeSettings) {
+        engine.play(s.timingMode, grid, s.hapticStyle(), s.subdivision, s.levels())
     }
 
     // ---- 스피드 트레이너 ----
@@ -281,7 +275,5 @@ object Metronome {
     }
 
     private const val APPLY_DEBOUNCE_MS = 120L
-    private const val REANCHOR_INTERVAL_NANOS = 30_000_000_000L
-    private const val AFTER_PULSE_NANOS = 100_000_000L
     private const val TRAINER_LEAD_NANOS = 60_000_000L
 }

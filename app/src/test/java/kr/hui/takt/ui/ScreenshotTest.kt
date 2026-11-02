@@ -67,6 +67,17 @@ class ScreenshotTest {
         )
     }
 
+    @Test fun settingsTiming() = capture("settings_timing") {
+        SettingsScreen(
+            MetronomeSettings(),
+            hasVibrator = true,
+            SettingsActions(
+                timingStats = { kr.hui.takt.engine.TimingStats(64, 0.02, 0.3, 2.1, 6.4) },
+            ),
+            initialItem = 14,
+        )
+    }
+
     @Test fun settings() = capture("settings") {
         SettingsScreen(MetronomeSettings(), hasVibrator = true, SettingsActions())
     }

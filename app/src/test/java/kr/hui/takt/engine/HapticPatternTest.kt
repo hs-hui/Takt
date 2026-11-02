@@ -71,6 +71,23 @@ class HapticPatternTest {
         assertEquals(listOf(2, 1, 1, 1), s.copy(beatsPerBar = 4).sanitized().levels().toList())
     }
 
+    @Test fun startingMidBeatRotatesWithoutDroppingPulses() {
+        val full = HapticPattern.build(120, 2, 0, 0, style, subdivision = 4)
+        val rot = HapticPattern.build(120, 2, 0, 10, style, subdivision = 4, startSub = 2)
+        assertEquals(10L, rot.timings[0])
+        assertEquals(full.cycleMillis, rot.cycleMillis)
+        // 첫 펄스는 세분(약), 강박은 두 펄스 뒤가 아니라 박 경계(2번째 박)에서
+        assertEquals(style.subAmplitude, rot.amplitudes[1])
+        assertEquals(style.subAmplitude, rot.amplitudes[3])
+        assertEquals(100, rot.amplitudes[5]) // 2번째 박 (보통)
+        // 회전된 주기는 원래 주기의 순환 이동
+        val n = full.timings.size - 1
+        for (i in 0 until n) {
+            assertEquals(full.timings[1 + (i + 4) % n], rot.timings[1 + i])
+            assertEquals(full.amplitudes[1 + (i + 4) % n], rot.amplitudes[1 + i])
+        }
+    }
+
     private tailrec fun gcd(a: Int, b: Int): Int = if (b == 0) a else gcd(b, a % b)
     private fun lcm(a: Int, b: Int) = a / gcd(a, b) * b
 

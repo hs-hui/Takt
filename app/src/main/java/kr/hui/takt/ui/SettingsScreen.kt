@@ -7,6 +7,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
@@ -29,6 +32,8 @@ import kr.hui.takt.data.MetronomeSettings
 import kr.hui.takt.data.Preset
 import kr.hui.takt.data.TrainerSettings
 import kr.hui.takt.engine.BeatGrid
+import kr.hui.takt.engine.TimingMode
+import kr.hui.takt.engine.TimingStats
 
 class SettingsActions(
     val onBeatsPerBar: (Int) -> Unit = {},
@@ -40,6 +45,9 @@ class SettingsActions(
     val onSavePreset: () -> Unit = {},
     val onApplyPreset: (Preset) -> Unit = {},
     val onDeletePreset: (Preset) -> Unit = {},
+    val onTimingMode: (TimingMode) -> Unit = {},
+    /** DIRECT 모드 타이밍 진단 (1초마다 읽음) */
+    val timingStats: () -> TimingStats? = { null },
 )
 
 @Composable
@@ -169,6 +177,38 @@ fun SettingsScreen(
                     plusEnabled = t.targetBpm < BeatGrid.MAX_BPM,
                 )
             }
+            item { ListHeader { Text(stringResource(R.string.timing)) } }
+            item {
+                val direct = settings.timingMode == TimingMode.DIRECT
+                SwitchButton(
+                    checked = direct,
+                    onCheckedChange = { on -> actions.onTimingMode(if (on) TimingMode.DIRECT else TimingMode.WAVEFORM) },
+                    label = { Text(stringResource(R.string.timing_direct)) },
+                    secondaryLabel = {
+                        Text(stringResource(if (direct) R.string.timing_direct_hint else R.string.timing_waveform_hint))
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            if (settings.timingMode == TimingMode.DIRECT) {
+                item {
+                    val stats by produceState<TimingStats?>(null) {
+                        while (true) {
+                            value = actions.timingStats()
+                            delay(1_000)
+                        }
+                    }
+                    Text(
+                        stats?.let {
+                            stringResource(R.string.timing_stats, it.meanLateMs, it.maxLateMs, it.meanCallMs, it.maxCallMs)
+                        } ?: stringResource(R.string.timing_stats_empty),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center,
+                    )
+                }
+            }
+
             item { ListHeader { Text(stringResource(R.string.display)) } }
             item {
                 SwitchButton(

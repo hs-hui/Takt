@@ -5,6 +5,7 @@ import android.os.Looper
 import android.os.SystemClock
 import androidx.test.core.app.ApplicationProvider
 import kr.hui.takt.data.TrainerSettings
+import kr.hui.takt.engine.TimingMode
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -27,6 +28,8 @@ class MetronomeControllerTest {
     @Test fun trainerStepsOnDownbeatsAndRestoresOnStop() {
         Metronome.init(ApplicationProvider.getApplicationContext<Application>())
         looper.idle()
+        // Robolectric 의 가짜 시계에서는 실시간 스레드(DIRECT)를 돌릴 수 없으므로 파형 모드로 컨트롤러 로직만 검증
+        Metronome.setTimingMode(TimingMode.WAVEFORM)
         Metronome.setBpm(120)
         Metronome.setBeatsPerBar(4)
         Metronome.setTrainer { TrainerSettings(enabled = true, stepBpm = 10, everyBars = 1, targetBpm = 140) }
@@ -63,6 +66,7 @@ class MetronomeControllerTest {
     @Test fun userTempoChangeIsDebouncedAndAppliedOnNextBeat() {
         Metronome.init(ApplicationProvider.getApplicationContext<Application>())
         looper.idle()
+        Metronome.setTimingMode(TimingMode.WAVEFORM)
         Metronome.setTrainer { it.copy(enabled = false) }
         Metronome.setBpm(60)
         Metronome.start()

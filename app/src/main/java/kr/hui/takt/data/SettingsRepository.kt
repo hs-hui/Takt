@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.first
 import kr.hui.takt.engine.BeatGrid
 import kr.hui.takt.engine.HapticPattern
 import kr.hui.takt.engine.HapticStyle
+import kr.hui.takt.engine.TimingMode
 
 data class MetronomeSettings(
     val bpm: Int = 100,
@@ -26,6 +27,7 @@ data class MetronomeSettings(
     val presets: List<Preset> = emptyList(),
     /** 박별 세기(0 무음/1 보통/2 강박). 비어 있으면 accentEnabled 기본 패턴 */
     val beatLevels: List<Int> = emptyList(),
+    val timingMode: TimingMode = TimingMode.DIRECT,
 ) {
     fun levels(): IntArray = IntArray(beatsPerBar) { i ->
         beatLevels.getOrNull(i) ?: HapticPattern.defaultLevel(i, beatsPerBar, accentEnabled)
@@ -144,6 +146,7 @@ class SettingsRepository(private val context: Context) {
         val KEEP_SCREEN_ON = booleanPreferencesKey("keep_screen_on")
         val PRESETS = stringPreferencesKey("presets")
         val BEAT_LEVELS = stringPreferencesKey("beat_levels")
+        val TIMING_MODE = stringPreferencesKey("timing_mode")
     }
 
     suspend fun load(): MetronomeSettings {
@@ -164,6 +167,7 @@ class SettingsRepository(private val context: Context) {
             keepScreenOn = p[Keys.KEEP_SCREEN_ON] ?: d.keepScreenOn,
             presets = Preset.decode(p[Keys.PRESETS]),
             beatLevels = p[Keys.BEAT_LEVELS].orEmpty().split(',').mapNotNull { it.toIntOrNull() },
+            timingMode = TimingMode.entries.firstOrNull { it.name == p[Keys.TIMING_MODE] } ?: d.timingMode,
         ).sanitized()
     }
 
@@ -181,6 +185,7 @@ class SettingsRepository(private val context: Context) {
             p[Keys.KEEP_SCREEN_ON] = s.keepScreenOn
             p[Keys.PRESETS] = Preset.encode(s.presets)
             p[Keys.BEAT_LEVELS] = s.beatLevels.joinToString(",")
+            p[Keys.TIMING_MODE] = s.timingMode.name
         }
     }
 }

@@ -54,6 +54,8 @@ fun TaktApp(ambient: Boolean = false) {
                             onSavePreset = Metronome::savePreset,
                             onApplyPreset = Metronome::applyPreset,
                             onDeletePreset = Metronome::deletePreset,
+                            onTimingMode = Metronome::setTimingMode,
+                            timingStats = { Metronome.timingStats },
                         ),
                     )
                 }

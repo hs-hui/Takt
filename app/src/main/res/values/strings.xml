@@ -33,4 +33,10 @@
     <string name="accent_ring_hint">메인 링을 탭하면 박별로 강박/무음 지정</string>
     <string name="complication_label">Takt BPM</string>
     <string name="playing">재생 중</string>
+    <string name="timing">타이밍</string>
+    <string name="timing_direct">박마다 직접 진동</string>
+    <string name="timing_direct_hint">권장. 끄면 시스템 반복 패턴 사용</string>
+    <string name="timing_waveform_hint">시스템 반복 패턴 (설정 변경·화면 꺼짐 때 한 번 튈 수 있음)</string>
+    <string name="timing_stats">앱 오차 평균 %1$.1f / 최대 %2$.1f ms\n시스템 응답 평균 %3$.1f / 최대 %4$.1f ms</string>
+    <string name="timing_stats_empty">재생하면 타이밍 진단이 표시됩니다</string>
 </resources>

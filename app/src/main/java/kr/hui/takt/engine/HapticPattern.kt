@@ -10,7 +10,7 @@ import kotlin.math.abs
  *
  * 한 주기는 마디의 정수배 박([cycleBeats])이다. 가능하면 주기 길이가 정확히 정수 ms 가 되는
  * lcm(bpm, beatsPerBar) 박을 쓰고, 그게 너무 길면(바인더 전송 한도) 상한 안에서 ms 오차가 가장 작은
- * 마디 배수를 고른다. 남는 오차(주기당 0.5ms 이하)는 엔진의 주기적 재정렬이 흡수한다.
+ * 마디 배수를 고른다. 남는 오차는 주기(수십 초~수 분)당 0.5ms 이하라 무시할 수 있다.
  * 각 펄스의 시작 시각은 주기 시작 기준 round(k * 60000 / (bpm * subdivision)) ms.
  */
 class HapticPattern(
@@ -37,8 +37,11 @@ class HapticPattern(
             subdivision: Int = 1,
             /** 마디 내 박별 세기(0=무음, 1=보통, 2=강박). null 이면 style.accentEnabled 에 따른 기본값 */
             levels: IntArray? = null,
+            /** 첫 박의 몇 번째 세분 펄스부터 시작할지 (설정 변경·재정렬 시 세분 펄스를 빠뜨리지 않도록) */
+            startSub: Int = 0,
         ): HapticPattern {
             require(firstDelayMs >= 0)
+            require(startSub in 0 until subdivision)
             require(subdivision >= 1)
             val beats = cycleBeats(bpm, beatsPerBar, subdivision)
             val pulses = beats * subdivision
@@ -73,7 +76,15 @@ class HapticPattern(
                     PulseKind.MUTE -> 0
                 }
             }
-            return HapticPattern(timings, amps, beats)
+            if (startSub == 0) return HapticPattern(timings, amps, beats)
+            // 주기는 순환하므로 앞의 startSub 개 펄스를 뒤로 돌린다
+            val cut = 1 + startSub * 2
+            val rt = LongArray(timings.size).also { it[0] = firstDelayMs }
+            val ra = IntArray(amps.size)
+            var w = 1
+            for (i in cut until timings.size) { rt[w] = timings[i]; ra[w] = amps[i]; w++ }
+            for (i in 1 until cut) { rt[w] = timings[i]; ra[w] = amps[i]; w++ }
+            return HapticPattern(rt, ra, beats)
         }
 
         /**
