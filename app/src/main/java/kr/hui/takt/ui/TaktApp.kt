@@ -30,9 +30,13 @@ fun TaktApp() {
                     SettingsScreen(
                         settings = state.settings,
                         hasVibrator = Metronome.hasVibrator,
-                        onBeatsPerBar = Metronome::setBeatsPerBar,
-                        onAccent = Metronome::setAccent,
-                        onStrength = Metronome::setStrength,
+                        actions = SettingsActions(
+                            onBeatsPerBar = Metronome::setBeatsPerBar,
+                            onSubdivision = Metronome::setSubdivision,
+                            onAccent = Metronome::setAccent,
+                            onStrength = Metronome::setStrength,
+                            onTrainer = Metronome::setTrainer,
+                        ),
                     )
                 }
             }

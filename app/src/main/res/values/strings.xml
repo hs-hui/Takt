@@ -10,4 +10,17 @@
     <string name="strength">진동 세기</string>
     <string name="no_vibrator">이 기기에는 진동 모터가 없습니다</string>
     <string name="channel_name">메트로놈 재생</string>
+    <string name="subdivision">세분</string>
+    <string name="sub_quarter">4분</string>
+    <string name="sub_eighth">8분</string>
+    <string name="sub_triplet">셋잇단</string>
+    <string name="sub_sixteenth">16분</string>
+    <string name="meter_label">%1$d박 · %2$s</string>
+    <string name="trainer">스피드 트레이너</string>
+    <string name="trainer_enabled">트레이너 사용</string>
+    <string name="trainer_summary">%1$d마디마다 +%2$d → %3$d</string>
+    <string name="trainer_every">간격</string>
+    <string name="bars_value">%1$d마디</string>
+    <string name="trainer_step">증가량</string>
+    <string name="trainer_target">목표 BPM</string>
 </resources>

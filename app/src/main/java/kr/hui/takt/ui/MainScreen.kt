@@ -1,6 +1,7 @@
 package kr.hui.takt.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -21,6 +22,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.input.rotary.onRotaryScrollEvent
@@ -74,9 +76,16 @@ fun MainScreen(
                 modifier = Modifier.fillMaxSize(),
             )
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                TextButton(onClick = onOpenSettings, modifier = Modifier.height(32.dp)) {
-                    Text("${s.beatsPerBar}/4", style = MaterialTheme.typography.labelMedium)
-                }
+                Text(
+                    stringResource(R.string.meter_label, s.beatsPerBar, subdivisionLabel(s.subdivision)),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(50))
+                        .clickable(onClick = onOpenSettings)
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                )
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     IconButton(onClick = { onNudge(-1) }, modifier = Modifier.size(40.dp)) {
                         Text("−", fontSize = 24.sp)
@@ -90,7 +99,12 @@ fun MainScreen(
                             fontSize = 40.sp,
                             fontWeight = FontWeight.Bold,
                         )
-                        Text("BPM", style = MaterialTheme.typography.labelSmall, color = colors.onSurfaceVariant)
+                        Text(
+                            if (s.trainer.enabled) "BPM ▲${s.trainer.targetBpm}" else "BPM",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (s.trainer.enabled) colors.tertiary else colors.onSurfaceVariant,
+                            maxLines = 1,
+                        )
                     }
                     IconButton(onClick = { onNudge(+1) }, modifier = Modifier.size(40.dp)) {
                         Text("+", fontSize = 24.sp)
