@@ -39,8 +39,6 @@ import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.TextButton
 import kr.hui.takt.MetronomeState
 import kr.hui.takt.R
-import kotlin.math.abs
-import kotlin.math.sign
 
 @Composable
 fun MainScreen(
@@ -61,7 +59,7 @@ fun MainScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .onRotaryScrollEvent {
-                    rotary.consume(it.verticalScrollPixels).let { steps -> if (steps != 0) onNudge(steps) }
+                    rotary.consume(it.verticalScrollPixels, it.uptimeMillis).let { steps -> if (steps != 0) onNudge(steps) }
                     true
                 }
                 .focusRequester(focusRequester)
@@ -89,7 +87,12 @@ fun MainScreen(
                         .padding(horizontal = 10.dp, vertical = 6.dp),
                 )
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    IconButton(onClick = { onNudge(-1) }, modifier = Modifier.size(40.dp)) {
+                    IconButton(
+                        onClick = { onNudge(-1) },
+                        onLongClick = { onNudge(-10) },
+                        onLongClickLabel = "-10",
+                        modifier = Modifier.size(40.dp),
+                    ) {
                         Text("−", fontSize = 24.sp)
                     }
                     Column(
@@ -101,17 +104,22 @@ fun MainScreen(
                             fontSize = 40.sp,
                             fontWeight = FontWeight.Bold,
                         )
-                        Text(
-                            if (s.trainer.enabled) "BPM ▲${s.trainer.targetBpm}" else "BPM",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (s.trainer.enabled) colors.tertiary else colors.onSurfaceVariant,
-                            maxLines = 1,
-                        )
                     }
-                    IconButton(onClick = { onNudge(+1) }, modifier = Modifier.size(40.dp)) {
+                    IconButton(
+                        onClick = { onNudge(+1) },
+                        onLongClick = { onNudge(+10) },
+                        onLongClickLabel = "+10",
+                        modifier = Modifier.size(40.dp),
+                    ) {
                         Text("+", fontSize = 24.sp)
                     }
                 }
+                Text(
+                    if (s.trainer.enabled) "BPM ▲${s.trainer.targetBpm}" else "BPM · ${tempoName(s.bpm)}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (s.trainer.enabled) colors.tertiary else colors.onSurfaceVariant,
+                    maxLines = 1,
+                )
                 Spacer(Modifier.height(4.dp))
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -148,19 +156,4 @@ fun MainScreen(
     }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
-}
-
-/** 크라운/베젤 회전을 BPM 단계로 변환. 베젤 한 칸(큰 이벤트)은 최소 1단계. */
-private class RotaryAccumulator(private val pixelsPerStep: Float = 24f) {
-    private var acc = 0f
-    fun consume(pixels: Float): Int {
-        if (abs(pixels) >= pixelsPerStep) {
-            acc = 0f
-            return (pixels / pixelsPerStep).toInt().coerceIn(-5, 5).let { if (it == 0) sign(pixels).toInt() else it }
-        }
-        acc += pixels
-        val steps = (acc / pixelsPerStep).toInt()
-        acc -= steps * pixelsPerStep
-        return steps
-    }
 }
