@@ -136,8 +136,6 @@ data class HapticStyle(
     val accentPulseMs: Long = 120,
     val subPulseMs: Long = 48,
     val accentEnabled: Boolean = true,
-    /** 시스템 클릭 효과(predefined) 사용. 직접 진동 모드에서만 */
-    val crisp: Boolean = false,
 ) {
     /** 진폭 제어가 안 되는 기기: 진폭은 기본값, 강박/세분은 길이로만 구분. */
     fun withoutAmplitudeControl(defaultAmplitude: Int) = copy(

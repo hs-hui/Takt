@@ -30,8 +30,6 @@ data class MetronomeSettings(
     val timingMode: TimingMode = TimingMode.DIRECT,
     /** 진동을 이만큼(ms) 일찍 건다. 모터 기동 지연 보정 (음수면 늦게) */
     val hapticLeadMs: Int = 10,
-    /** 시스템 클릭 효과 사용 (기기에 맞춰 조율된 짧고 센 진동) */
-    val crispClick: Boolean = false,
     /** 박마다 화면 전체 번쩍임 */
     val screenFlash: Boolean = true,
 ) {
@@ -76,7 +74,6 @@ data class MetronomeSettings(
             accentPulseMs = ms + 40,
             subPulseMs = (ms * 60 / 100).coerceAtLeast(25),
             accentEnabled = accentEnabled,
-            crisp = crispClick,
         )
     }
 
@@ -159,7 +156,6 @@ class SettingsRepository(private val context: Context) {
         val ACCENT = booleanPreferencesKey("accent")
         // v2: 세기 체계를 바꿨으므로 예전(약한) 저장값은 무시
         val STRENGTH = intPreferencesKey("strength_v2")
-        val CRISP = booleanPreferencesKey("crisp_click")
         val SCREEN_FLASH = booleanPreferencesKey("screen_flash")
         val SUBDIVISION = intPreferencesKey("subdivision")
         val TRAINER = booleanPreferencesKey("trainer_enabled")
@@ -193,7 +189,6 @@ class SettingsRepository(private val context: Context) {
             beatLevels = p[Keys.BEAT_LEVELS].orEmpty().split(',').mapNotNull { it.toIntOrNull() },
             timingMode = TimingMode.entries.firstOrNull { it.name == p[Keys.TIMING_MODE] } ?: d.timingMode,
             hapticLeadMs = p[Keys.HAPTIC_LEAD] ?: d.hapticLeadMs,
-            crispClick = p[Keys.CRISP] ?: d.crispClick,
             screenFlash = p[Keys.SCREEN_FLASH] ?: d.screenFlash,
         ).sanitized()
     }
@@ -214,7 +209,6 @@ class SettingsRepository(private val context: Context) {
             p[Keys.BEAT_LEVELS] = s.beatLevels.joinToString(",")
             p[Keys.TIMING_MODE] = s.timingMode.name
             p[Keys.HAPTIC_LEAD] = s.hapticLeadMs
-            p[Keys.CRISP] = s.crispClick
             p[Keys.SCREEN_FLASH] = s.screenFlash
         }
     }

@@ -47,7 +47,6 @@ class SettingsActions(
     val onDeletePreset: (Preset) -> Unit = {},
     val onTimingMode: (TimingMode) -> Unit = {},
     val onHapticLead: (Int) -> Unit = {},
-    val onCrispClick: (Boolean) -> Unit = {},
     val onScreenFlash: (Boolean) -> Unit = {},
     /** DIRECT 모드 타이밍 진단 (1초마다 읽음) */
     val timingStats: () -> TimingStats? = { null },
@@ -102,16 +101,6 @@ fun SettingsScreen(
                     onPlus = { actions.onStrength(settings.strength + 1) },
                     minusEnabled = settings.strength > 1,
                     plusEnabled = settings.strength < MetronomeSettings.STRENGTH_AMPLITUDES.size,
-                )
-            }
-
-            item {
-                SwitchButton(
-                    checked = settings.crispClick,
-                    onCheckedChange = actions.onCrispClick,
-                    label = { Text(stringResource(R.string.crisp_click)) },
-                    secondaryLabel = { Text(stringResource(R.string.crisp_click_hint)) },
-                    modifier = Modifier.fillMaxWidth(),
                 )
             }
 

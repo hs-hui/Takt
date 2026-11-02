@@ -101,10 +101,6 @@ class HapticEngine(context: Context) {
     /** 정지 상태에서 세기 확인용: 강박 1번 + 보통 박 1번. */
     fun preview(style: HapticStyle) {
         val st = effective(style)
-        if (st.crisp) {
-            direct.previewCrisp()
-            return
-        }
         vibrate(
             VibrationEffect.createWaveform(
                 longArrayOf(0, st.accentPulseMs, 300, st.pulseMs),
@@ -184,25 +180,12 @@ class HapticEngine(context: Context) {
 
         fun stop() = scheduler.stop()
 
-        /** 시스템 클릭 미리보기: 강박 → 보통 박 */
-        fun previewCrisp() {
-            vibrate(crispEffect(HapticPattern.LEVEL_ACCENT))
-            Thread {
-                Thread.sleep(350)
-                vibrate(crispEffect(HapticPattern.LEVEL_NORMAL))
-            }.start()
-        }
-
         private fun fire(pulse: Pulse, c: PulseConfig) {
             val amp = PulseClock.amplitudeOf(pulse, c.grid, c.style, c.levels)
             if (amp <= 0) return
-            val effect = if (c.style.crisp) {
-                crispEffect(PulseClock.kindOf(pulse, c.grid, c.style, c.levels))
-            } else {
-                val dur = PulseClock.durationOf(pulse, c.grid, c.style, c.levels, c.subdivision)
-                effects.getOrPut(dur shl 16 or (amp.toLong() and 0xFFFF)) {
-                    VibrationEffect.createOneShot(dur, amp)
-                }
+            val dur = PulseClock.durationOf(pulse, c.grid, c.style, c.levels, c.subdivision)
+            val effect = effects.getOrPut(dur shl 16 or (amp.toLong() and 0xFFFF)) {
+                VibrationEffect.createOneShot(dur, amp)
             }
             val callStart = SystemClock.elapsedRealtimeNanos()
             try {
@@ -214,41 +197,6 @@ class HapticEngine(context: Context) {
             // 앱 오차: 호출이 끝난(≈진동 시작) 시각과 펄스 시각의 차이
             record(callEnd - pulse.timeNanos + userLeadNanos, callEnd - callStart)
         }
-
-        /**
-         * 기기에 맞춰 조율된 시스템 효과. 모터를 과구동해 짧아도 세게 친다.
-         * 지원하면 합성 프리미티브(THUD/CLICK/TICK), 아니면 미리 정의된 효과.
-         */
-        private fun crispEffect(kind: Int): VibrationEffect = crisp.getOrPut(kind) {
-            val click = VibrationEffect.Composition.PRIMITIVE_CLICK
-            val tick = VibrationEffect.Composition.PRIMITIVE_TICK
-            if (vibrator.areAllPrimitivesSupported(click, tick)) {
-                val c = VibrationEffect.startComposition()
-                when (kind) {
-                    HapticPattern.LEVEL_ACCENT ->
-                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
-                            vibrator.areAllPrimitivesSupported(VibrationEffect.Composition.PRIMITIVE_THUD)
-                        ) {
-                            c.addPrimitive(VibrationEffect.Composition.PRIMITIVE_THUD, 1f)
-                        } else {
-                            // THUD 가 없으면 클릭 두 번을 붙여 강박을 구분
-                            c.addPrimitive(click, 1f).addPrimitive(click, 1f, 20)
-                        }
-                    -1 -> c.addPrimitive(tick, 1f)
-                    else -> c.addPrimitive(click, 1f)
-                }
-                c.compose()
-            } else {
-                VibrationEffect.createPredefined(
-                    when (kind) {
-                        HapticPattern.LEVEL_ACCENT -> VibrationEffect.EFFECT_HEAVY_CLICK
-                        -1 -> VibrationEffect.EFFECT_TICK
-                        else -> VibrationEffect.EFFECT_CLICK
-                    },
-                )
-            }
-        }
-        private val crisp = ConcurrentHashMap<Int, VibrationEffect>()
 
         private fun record(late: Long, call: Long) {
             val i = statCount % STATS_WINDOW
