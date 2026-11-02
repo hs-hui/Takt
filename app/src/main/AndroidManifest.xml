@@ -16,6 +16,11 @@
         android:label="@string/app_name"
         android:theme="@android:style/Theme.DeviceDefault">
 
+        <!-- Ambient 모드(AmbientLifecycleObserver)가 사용하는 워치 공유 라이브러리 -->
+        <uses-library
+            android:name="com.google.android.wearable"
+            android:required="false" />
+
         <!-- 폰 앱 없이 워치 단독으로 동작 -->
         <meta-data
             android:name="com.google.android.wearable.standalone"
