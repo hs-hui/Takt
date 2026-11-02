@@ -62,3 +62,23 @@ class PresetTest {
         assertEquals(listOf(kr.hui.takt.data.Preset(90, 3, 1), kr.hui.takt.data.Preset(120, 4, 1)), s.presets)
     }
 }
+
+class StrengthTest {
+    @Test fun strongerLevelsAreLongerAtMaxAmplitude() {
+        val s5 = kr.hui.takt.data.MetronomeSettings(strength = 5).hapticStyle()
+        val s7 = kr.hui.takt.data.MetronomeSettings(strength = 7).hapticStyle()
+        assertEquals(255, s7.amplitude)
+        assertEquals(200L, s7.pulseMs)
+        assertEquals(320L, s7.accentPulseMs)
+        assert(s7.pulseMs > s5.pulseMs)
+        // 범위 밖은 최대치로
+        assertEquals(7, kr.hui.takt.data.MetronomeSettings(strength = 99).sanitized().strength)
+    }
+
+    @Test fun longPulsesStillCappedByTempo() {
+        val st = kr.hui.takt.data.MetronomeSettings(strength = 7).hapticStyle()
+        // 240bpm 박 250ms → 펄스는 최대 112ms
+        val p = HapticPattern.build(240, 4, 0, 0, st)
+        for (i in 1 until p.timings.size step 2) assert(p.timings[i] <= 112)
+    }
+}

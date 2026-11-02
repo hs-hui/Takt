@@ -71,7 +71,7 @@ data class MetronomeSettings(
             accentAmplitude = 255,
             subAmplitude = (amp * 70 / 100).coerceAtLeast(120),
             pulseMs = ms,
-            accentPulseMs = ms + 40,
+            accentPulseMs = ms + ms / 2 + 20, // 강박은 1.5배 + 20ms
             subPulseMs = (ms * 60 / 100).coerceAtLeast(25),
             accentEnabled = accentEnabled,
         )
@@ -89,8 +89,9 @@ data class MetronomeSettings(
     )
 
     companion object {
-        val STRENGTH_AMPLITUDES = intArrayOf(150, 190, 225, 255, 255)
-        val STRENGTH_PULSE_MS = longArrayOf(35L, 50L, 65L, 80L, 110L)
+        // 진폭은 4단계부터 하드웨어 최대(255). 그 위로는 길이로만 세진다.
+        val STRENGTH_AMPLITUDES = intArrayOf(150, 190, 225, 255, 255, 255, 255)
+        val STRENGTH_PULSE_MS = longArrayOf(35L, 50L, 65L, 80L, 110L, 150L, 200L)
         const val MAX_SUBDIVISION = 4
         const val MAX_PRESETS = 8
         const val MIN_LEAD_MS = -30
