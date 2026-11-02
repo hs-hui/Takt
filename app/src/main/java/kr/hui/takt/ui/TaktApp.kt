@@ -13,7 +13,7 @@ import androidx.wear.compose.navigation.rememberSwipeDismissableNavController
 import kr.hui.takt.Metronome
 
 @Composable
-fun TaktApp() {
+fun TaktApp(ambient: Boolean = false) {
     val state by Metronome.state.collectAsStateWithLifecycle()
     val nav = rememberSwipeDismissableNavController()
     // 재생 중 화면 켜두기 옵션
@@ -25,6 +25,10 @@ fun TaktApp() {
     }
     MaterialTheme {
         AppScaffold {
+            if (ambient) {
+                AmbientScreen(state)
+                return@AppScaffold
+            }
             SwipeDismissableNavHost(navController = nav, startDestination = "main") {
                 composable("main") {
                     MainScreen(

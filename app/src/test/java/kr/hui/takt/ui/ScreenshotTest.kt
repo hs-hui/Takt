@@ -58,6 +58,15 @@ class ScreenshotTest {
         )
     }
 
+    @Test fun ambient() = capture("ambient") {
+        AmbientScreen(
+            MetronomeState(
+                MetronomeSettings(bpm = 148, beatsPerBar = 4, beatLevels = listOf(2, 1, 0, 1)),
+                grid = BeatGrid(0, 0, 148, 4),
+            ),
+        )
+    }
+
     @Test fun settings() = capture("settings") {
         SettingsScreen(MetronomeSettings(), hasVibrator = true, SettingsActions())
     }
